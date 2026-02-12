@@ -1,0 +1,78 @@
+@page
+@model StackOverflow.Web.Pages.Search.IndexModel
+@{
+    ViewData["Title"] = string.IsNullOrEmpty(Model.ViewModel.Query) ? "Search" : $"Search Results for '{Model.ViewModel.Query}'";
+}
+
+<div class="search-page">
+    <div class="search-header">
+        <h1>Search Results</h1>
+        @if (!string.IsNullOrEmpty(Model.ViewModel.Query))
+        {
+            <p class="search-summary">
+                @Model.ViewModel.TotalCount.ToString("N0") results for <strong>"@Model.ViewModel.Query"</strong>
+            </p>
+        }
+    </div>
+
+    <div class="search-controls">
+        <form method="get" class="search-form-large">
+            <input type="search" name="q" value="@Model.ViewModel.Query" placeholder="Search questions..." class="search-input-large" />
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ViewModel.Query))
+    {
+        <div class="sub-header">
+            <div class="sort-tabs">
+                <a href="?q=@Uri.EscapeDataString(Model.ViewModel.Query)&sort=relevance" class="tab @(Model.ViewModel.SortBy == "relevance" || string.IsNullOrEmpty(Model.ViewModel.SortBy) ? "active" : "")">Relevance</a>
+                <a href="?q=@Uri.EscapeDataString(Model.ViewModel.Query)&sort=newest" class="tab @(Model.ViewModel.SortBy == "newest" ? "active" : "")">Newest</a>
+                <a href="?q=@Uri.EscapeDataString(Model.ViewModel.Query)&sort=votes" class="tab @(Model.ViewModel.SortBy == "votes" ? "active" : "")">Votes</a>
+            </div>
+        </div>
+
+        @if (Model.ViewModel.Results?.Any() == true)
+        {
+            <div class="question-list">
+                @foreach (var question in Model.ViewModel.Results)
+                {
+                    <partial name="_QuestionSummary" model="question" />
+                }
+            </div>
+
+            var searchQueryParams = new Dictionary<string, string> { ["q"] = Model.ViewModel.Query };
+            if (!string.IsNullOrEmpty(Model.ViewModel.SortBy)) { searchQueryParams["sort"] = Model.ViewModel.SortBy; }
+            <partial name="_Pagination" model="@((Model.ViewModel.Page, Model.ViewModel.TotalPages, "/Search", searchQueryParams))" />
+        }
+        else
+        {
+            <div class="empty-state">
+                <h2>No results found</h2>
+                <p>We couldn't find anything for <strong>"@Model.ViewModel.Query"</strong></p>
+                <div class="search-tips">
+                    <h3>Search tips:</h3>
+                    <ul>
+                        <li>Check your spelling</li>
+                        <li>Try more general keywords</li>
+                        <li>Try different keywords</li>
+                        <li>Try using fewer keywords</li>
+                    </ul>
+                </div>
+                <a href="/Questions/Ask" class="btn btn-primary">Ask a new question</a>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="search-help">
+            <h2>Search Tips</h2>
+            <ul>
+                <li>Use specific keywords related to your question</li>
+                <li>Include programming language or framework names</li>
+                <li>Search for error messages you've encountered</li>
+                <li>Use tags to narrow down results (e.g., <code>[javascript]</code>)</li>
+            </ul>
+        </div>
+    }
+</div>

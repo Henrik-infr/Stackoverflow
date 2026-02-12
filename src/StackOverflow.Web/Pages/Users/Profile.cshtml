@@ -1,0 +1,176 @@
+@page "{id:int}"
+@model StackOverflow.Web.Pages.Users.ProfileModel
+@{
+    ViewData["Title"] = Model.ViewModel?.User?.DisplayName ?? "User Profile";
+}
+
+@if (Model.ViewModel?.User == null)
+{
+    <div class="error-state">
+        <h1>User not found</h1>
+        <p>The user you're looking for doesn't exist.</p>
+        <a href="/Users" class="btn btn-primary">Browse Users</a>
+    </div>
+}
+else
+{
+    var user = Model.ViewModel.User;
+
+    <div class="profile-page">
+        <div class="profile-header">
+            <img src="@user.GravatarUrl" alt="@user.DisplayName" class="profile-avatar" />
+            <div class="profile-info">
+                <h1>@user.DisplayName</h1>
+                @if (!string.IsNullOrEmpty(user.Location))
+                {
+                    <div class="profile-location">📍 @user.Location</div>
+                }
+                <div class="profile-meta">
+                    <span>Member since @user.CreationDate.ToString("MMMM yyyy")</span>
+                    <span>Last seen @user.LastAccessDate.ToString("MMM d, yyyy")</span>
+                </div>
+                @if (!string.IsNullOrEmpty(user.WebsiteUrl))
+                {
+                    <a href="@user.WebsiteUrl" class="profile-website" target="_blank" rel="noopener">@user.WebsiteUrl</a>
+                }
+            </div>
+        </div>
+
+        <div class="profile-stats">
+            <div class="stat-box">
+                <span class="stat-value">@user.Reputation.ToString("N0")</span>
+                <span class="stat-label">reputation</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-value">@user.Views.ToString("N0")</span>
+                <span class="stat-label">profile views</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-value">@user.QuestionCount</span>
+                <span class="stat-label">questions</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-value">@user.AnswerCount</span>
+                <span class="stat-label">answers</span>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(user.AboutMe))
+        {
+            <div class="profile-about">
+                <h2>About</h2>
+                <div class="about-content">
+                    @Html.Raw(user.AboutMe)
+                </div>
+            </div>
+        }
+
+        <div class="profile-content">
+            <div class="profile-main">
+                <!-- Badges -->
+                @if (Model.ViewModel.BadgeSummary?.TotalCount > 0)
+                {
+                    <div class="profile-section">
+                        <h2>Badges</h2>
+                        <div class="badge-summary">
+                            @if (Model.ViewModel.BadgeSummary.GoldCount > 0)
+                            {
+                                <span class="badge-count gold">
+                                    <span class="badge-dot">●</span>
+                                    @Model.ViewModel.BadgeSummary.GoldCount
+                                </span>
+                            }
+                            @if (Model.ViewModel.BadgeSummary.SilverCount > 0)
+                            {
+                                <span class="badge-count silver">
+                                    <span class="badge-dot">●</span>
+                                    @Model.ViewModel.BadgeSummary.SilverCount
+                                </span>
+                            }
+                            @if (Model.ViewModel.BadgeSummary.BronzeCount > 0)
+                            {
+                                <span class="badge-count bronze">
+                                    <span class="badge-dot">●</span>
+                                    @Model.ViewModel.BadgeSummary.BronzeCount
+                                </span>
+                            }
+                        </div>
+                        @if (Model.ViewModel.Badges?.Any() == true)
+                        {
+                            <div class="badges-list">
+                                @foreach (var badge in Model.ViewModel.Badges.Take(12))
+                                {
+                                    <span class="badge-item @badge.ClassName" title="@badge.ClassDisplayName badge">
+                                        <span class="badge-dot">●</span>
+                                        @badge.Name
+                                    </span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Recent Questions -->
+                <div class="profile-section">
+                    <h2>Top Questions</h2>
+                    @if (Model.ViewModel.RecentQuestions?.Any() == true)
+                    {
+                        <ul class="post-list-compact">
+                            @foreach (var question in Model.ViewModel.RecentQuestions)
+                            {
+                                <li>
+                                    <span class="post-score @(question.Score < 0 ? "negative" : "")">@question.Score</span>
+                                    <a href="/Questions/Details/@question.Id">@question.Title</a>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="empty-text">No questions yet</p>
+                    }
+                </div>
+
+                <!-- Recent Answers -->
+                <div class="profile-section">
+                    <h2>Top Answers</h2>
+                    @if (Model.ViewModel.RecentAnswers?.Any() == true)
+                    {
+                        <ul class="post-list-compact">
+                            @foreach (var answer in Model.ViewModel.RecentAnswers)
+                            {
+                                <li>
+                                    <span class="post-score @(answer.Score < 0 ? "negative" : "")">@answer.Score</span>
+                                    <a href="/Questions/Details/@answer.ParentId#answer-@answer.Id">@answer.Title</a>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="empty-text">No answers yet</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Top Tags -->
+            @if (Model.ViewModel.TopTags?.Any() == true)
+            {
+                <aside class="profile-sidebar">
+                    <div class="profile-section">
+                        <h2>Top Tags</h2>
+                        <div class="top-tags-list">
+                            @foreach (var tag in Model.ViewModel.TopTags)
+                            {
+                                <div class="top-tag">
+                                    <a href="/Tags/Details/@tag.TagName" class="tag">@tag.TagName</a>
+                                    <span class="tag-score">@tag.Count posts</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </aside>
+            }
+        </div>
+    </div>
+}

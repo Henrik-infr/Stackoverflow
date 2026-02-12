@@ -1,0 +1,57 @@
+@page
+@model StackOverflow.Web.Pages.Tags.IndexModel
+@{
+    ViewData["Title"] = "Tags";
+}
+
+<div class="tags-page">
+    <h1>Tags</h1>
+    <p class="page-description">
+        A tag is a keyword or label that categorizes your question with other, similar questions.
+        Using the right tags makes it easier for others to find and answer your question.
+    </p>
+
+    <div class="tags-controls">
+        <form method="get" class="tags-filter">
+            <input type="text" name="filter" placeholder="Filter by tag name" value="@Model.ViewModel.Filter" class="filter-input" />
+            <button type="submit" class="btn btn-secondary">Filter</button>
+        </form>
+        <div class="sort-tabs">
+            <a href="?sort=popular" class="tab @(Model.ViewModel.SortBy == "popular" || string.IsNullOrEmpty(Model.ViewModel.SortBy) ? "active" : "")">Popular</a>
+            <a href="?sort=name" class="tab @(Model.ViewModel.SortBy == "name" ? "active" : "")">Name</a>
+            <a href="?sort=newest" class="tab @(Model.ViewModel.SortBy == "newest" ? "active" : "")">New</a>
+        </div>
+    </div>
+
+    @if (Model.ViewModel.Tags?.Any() == true)
+    {
+        <div class="tags-grid">
+            @foreach (var tag in Model.ViewModel.Tags)
+            {
+                <div class="tag-card">
+                    <a href="/Tags/Details/@tag.TagName" class="tag tag-large">@tag.TagName</a>
+                    <p class="tag-excerpt">
+                        @if (!string.IsNullOrEmpty(tag.Excerpt))
+                        {
+                            @tag.Excerpt
+                        }
+                    </p>
+                    <div class="tag-stats">
+                        <span>@tag.Count.ToString("N0") questions</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        var tagsQueryParams = new Dictionary<string, string>();
+        if (!string.IsNullOrEmpty(Model.ViewModel.SortBy)) { tagsQueryParams["sort"] = Model.ViewModel.SortBy; }
+        if (!string.IsNullOrEmpty(Model.ViewModel.Filter)) { tagsQueryParams["filter"] = Model.ViewModel.Filter; }
+        <partial name="_Pagination" model="@((Model.ViewModel.Page, Model.ViewModel.TotalPages, "/Tags", tagsQueryParams))" />
+    }
+    else
+    {
+        <div class="empty-state">
+            <p>No tags found.</p>
+        </div>
+    }
+</div>

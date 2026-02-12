@@ -1,0 +1,58 @@
+@model Post
+
+<div class="question-summary">
+    <div class="stats">
+        <div class="stat @(Model.Score < 0 ? "negative" : "")">
+            <span class="stat-value">@Model.Score</span>
+            <span class="stat-label">votes</span>
+        </div>
+        <div class="stat @(Model.AcceptedAnswerId.HasValue ? "answered-accepted" : Model.AnswerCount > 0 ? "answered" : "")">
+            <span class="stat-value">@Model.AnswerCount</span>
+            <span class="stat-label">answers</span>
+        </div>
+        <div class="stat">
+            <span class="stat-value">@Model.ViewCount</span>
+            <span class="stat-label">views</span>
+        </div>
+    </div>
+    <div class="summary">
+        <h3 class="question-title">
+            <a href="/Questions/Details/@Model.Id">@Model.Title</a>
+        </h3>
+        <div class="excerpt">
+            @{
+                var excerpt = Model.Body?.Length > 200
+                    ? System.Text.RegularExpressions.Regex.Replace(Model.Body.Substring(0, 200), "<[^>]+>", "") + "..."
+                    : System.Text.RegularExpressions.Regex.Replace(Model.Body ?? "", "<[^>]+>", "");
+            }
+            @excerpt
+        </div>
+        <div class="question-meta">
+            <div class="tags">
+                @if (!string.IsNullOrEmpty(Model.Tags))
+                {
+                    var tagNames = Model.Tags.Split(new[] { '<', '>' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var tag in tagNames)
+                    {
+                        <a href="/Tags/Details/@tag" class="tag">@tag</a>
+                    }
+                }
+            </div>
+            <div class="user-info">
+                @if (Model.Owner != null)
+                {
+                    <a href="/Users/Profile/@Model.Owner.Id" class="user-link">
+                        <img src="@Model.Owner.GravatarUrl" alt="@Model.Owner.DisplayName" class="user-avatar" />
+                        <span class="user-name">@Model.Owner.DisplayName</span>
+                        <span class="user-rep">@Model.Owner.Reputation.ToString("N0")</span>
+                    </a>
+                }
+                else if (!string.IsNullOrEmpty(Model.OwnerDisplayName))
+                {
+                    <span class="user-name">@Model.OwnerDisplayName</span>
+                }
+                <span class="time">asked @Model.CreationDate.ToString("MMM d, yyyy 'at' H:mm")</span>
+            </div>
+        </div>
+    </div>
+</div>

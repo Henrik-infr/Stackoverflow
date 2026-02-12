@@ -1,0 +1,50 @@
+@page "{tagName}"
+@model StackOverflow.Web.Pages.Tags.DetailsModel
+@{
+    ViewData["Title"] = $"Questions tagged '{Model.TagName}'";
+}
+
+<div class="tag-page">
+    <div class="tag-header">
+        <h1>
+            <span class="tag tag-large">@Model.TagName</span>
+        </h1>
+        @if (Model.Tag != null)
+        {
+            <p class="tag-description">@Model.Tag.Excerpt</p>
+            <div class="tag-meta">
+                <span>@Model.TotalCount.ToString("N0") questions</span>
+            </div>
+        }
+    </div>
+
+    <div class="sub-header">
+        <div class="sort-tabs">
+            <a href="?sort=newest" class="tab @(Model.SortBy == "newest" ? "active" : "")">Newest</a>
+            <a href="?sort=active" class="tab @(Model.SortBy == "active" || string.IsNullOrEmpty(Model.SortBy) ? "active" : "")">Active</a>
+            <a href="?sort=votes" class="tab @(Model.SortBy == "votes" ? "active" : "")">Votes</a>
+            <a href="?sort=unanswered" class="tab @(Model.SortBy == "unanswered" ? "active" : "")">Unanswered</a>
+        </div>
+    </div>
+
+    @if (Model.Questions?.Any() == true)
+    {
+        <div class="question-list">
+            @foreach (var question in Model.Questions)
+            {
+                <partial name="_QuestionSummary" model="question" />
+            }
+        </div>
+
+        var tagQueryParams = new Dictionary<string, string>();
+        if (!string.IsNullOrEmpty(Model.SortBy)) { tagQueryParams["sort"] = Model.SortBy; }
+        <partial name="_Pagination" model="@((Model.Page, Model.TotalPages, $"/Tags/Details/{Model.TagName}", tagQueryParams))" />
+    }
+    else
+    {
+        <div class="empty-state">
+            <p>No questions found with this tag.</p>
+            <a href="/Questions/Ask" class="btn btn-primary">Ask a question</a>
+        </div>
+    }
+</div>

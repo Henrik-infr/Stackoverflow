@@ -1,0 +1,54 @@
+@page
+@model StackOverflow.Web.Pages.Users.IndexModel
+@{
+    ViewData["Title"] = "Users";
+}
+
+<div class="users-page">
+    <h1>Users</h1>
+
+    <div class="users-controls">
+        <form method="get" class="users-filter">
+            <input type="text" name="filter" placeholder="Filter by user name" value="@Model.ViewModel.Filter" class="filter-input" />
+            <button type="submit" class="btn btn-secondary">Filter</button>
+        </form>
+        <div class="sort-tabs">
+            <a href="?sort=reputation" class="tab @(Model.ViewModel.SortBy == "reputation" || string.IsNullOrEmpty(Model.ViewModel.SortBy) ? "active" : "")">Reputation</a>
+            <a href="?sort=newest" class="tab @(Model.ViewModel.SortBy == "newest" ? "active" : "")">New Users</a>
+            <a href="?sort=name" class="tab @(Model.ViewModel.SortBy == "name" ? "active" : "")">Name</a>
+        </div>
+    </div>
+
+    @if (Model.ViewModel.Users?.Any() == true)
+    {
+        <div class="users-grid">
+            @foreach (var user in Model.ViewModel.Users)
+            {
+                <div class="user-card">
+                    <a href="/Users/Profile/@user.Id" class="user-avatar-link">
+                        <img src="@user.GravatarUrl" alt="@user.DisplayName" class="user-avatar-lg" />
+                    </a>
+                    <div class="user-info">
+                        <a href="/Users/Profile/@user.Id" class="user-name">@user.DisplayName</a>
+                        @if (!string.IsNullOrEmpty(user.Location))
+                        {
+                            <span class="user-location">@user.Location</span>
+                        }
+                        <span class="user-rep">@user.Reputation.ToString("N0")</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        var usersQueryParams = new Dictionary<string, string>();
+        if (!string.IsNullOrEmpty(Model.ViewModel.SortBy)) { usersQueryParams["sort"] = Model.ViewModel.SortBy; }
+        if (!string.IsNullOrEmpty(Model.ViewModel.Filter)) { usersQueryParams["filter"] = Model.ViewModel.Filter; }
+        <partial name="_Pagination" model="@((Model.ViewModel.Page, Model.ViewModel.TotalPages, "/Users", usersQueryParams))" />
+    }
+    else
+    {
+        <div class="empty-state">
+            <p>No users found.</p>
+        </div>
+    }
+</div>

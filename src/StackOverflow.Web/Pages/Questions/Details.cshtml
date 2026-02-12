@@ -1,0 +1,248 @@
+@page "{id:int}"
+@model StackOverflow.Web.Pages.Questions.DetailsModel
+@{
+    ViewData["Title"] = Model.ViewModel?.Question?.Title ?? "Question";
+}
+
+@if (Model.ViewModel?.Question == null)
+{
+    <div class="error-state">
+        <h1>Question not found</h1>
+        <p>The question you're looking for doesn't exist or has been removed.</p>
+        <a href="/Questions" class="btn btn-primary">Browse Questions</a>
+    </div>
+}
+else
+{
+    var question = Model.ViewModel.Question;
+
+    <div class="question-page">
+        <div class="question-header">
+            <h1>@question.Title</h1>
+            <div class="question-meta-bar">
+                <span>Asked <time>@question.CreationDate.ToString("MMM d, yyyy 'at' H:mm")</time></span>
+                @if (question.LastActivityDate.HasValue)
+                {
+                    <span>Modified <time>@question.LastActivityDate.Value.ToString("MMM d, yyyy 'at' H:mm")</time></span>
+                }
+                <span>Viewed @question.ViewCount.ToString("N0") times</span>
+            </div>
+        </div>
+
+        <div class="question-main">
+            <div class="post-layout">
+                <!-- Question voting -->
+                <div class="vote-cell">
+                    <button class="vote-btn upvote" data-post-id="@question.Id" data-vote-type="up" title="This question shows research effort; it is useful and clear">▲</button>
+                    <div class="vote-count">@question.Score</div>
+                    <button class="vote-btn downvote" data-post-id="@question.Id" data-vote-type="down" title="This question does not show any research effort; it is unclear or not useful">▼</button>
+                    <button class="bookmark-btn" data-post-id="@question.Id" title="Save this question">☆</button>
+                </div>
+
+                <!-- Question body -->
+                <div class="post-body">
+                    <div class="post-text">
+                        @Html.Raw(question.Body)
+                    </div>
+
+                    <div class="post-tags">
+                        @if (!string.IsNullOrEmpty(question.Tags))
+                        {
+                            var tagNames = question.Tags.Split(new[] { '<', '>' }, StringSplitOptions.RemoveEmptyEntries);
+                            foreach (var tag in tagNames)
+                            {
+                                <a href="/Tags/Details/@tag" class="tag">@tag</a>
+                            }
+                        }
+                    </div>
+
+                    <div class="post-footer">
+                        <div class="post-menu">
+                            <a href="#">Share</a>
+                            <a href="#">Edit</a>
+                            <a href="#">Follow</a>
+                        </div>
+                        <div class="post-signature owner">
+                            <div class="signature-time">asked @question.CreationDate.ToString("MMM d, yyyy 'at' H:mm")</div>
+                            @if (question.Owner != null)
+                            {
+                                <div class="signature-user">
+                                    <img src="@question.Owner.GravatarUrl" alt="@question.Owner.DisplayName" class="user-avatar" />
+                                    <div class="user-details">
+                                        <a href="/Users/Profile/@question.Owner.Id">@question.Owner.DisplayName</a>
+                                        <span class="user-rep">@question.Owner.Reputation.ToString("N0")</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Question comments -->
+                    <div class="comments-section">
+                        @if (Model.ViewModel.QuestionComments?.Any() == true)
+                        {
+                            <ul class="comments-list">
+                                @foreach (var comment in Model.ViewModel.QuestionComments)
+                                {
+                                    <li class="comment">
+                                        <span class="comment-score">@(comment.Score > 0 ? comment.Score.ToString() : "")</span>
+                                        <span class="comment-text">@comment.Text</span>
+                                        <span class="comment-user">
+                                            – @if (comment.User != null)
+                                            {
+                                                <a href="/Users/Profile/@comment.User.Id">@comment.User.DisplayName</a>
+                                            }
+                                            else
+                                            {
+                                                @comment.UserDisplayName
+                                            }
+                                        </span>
+                                        <span class="comment-date">@comment.CreationDate.ToString("MMM d, yyyy 'at' H:mm")</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        <a href="#" class="add-comment-link" data-post-id="@question.Id">Add a comment</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Answers section -->
+            <div class="answers-section">
+                <div class="answers-header">
+                    <h2>@Model.ViewModel.Answers.Count Answer@(Model.ViewModel.Answers.Count != 1 ? "s" : "")</h2>
+                    <div class="answers-sort">
+                        <span>Sorted by:</span>
+                        <select class="sort-select">
+                            <option value="votes">Highest score (default)</option>
+                            <option value="date">Date modified</option>
+                            <option value="created">Date created</option>
+                        </select>
+                    </div>
+                </div>
+
+                @foreach (var answer in Model.ViewModel.Answers)
+                {
+                    var isAccepted = question.AcceptedAnswerId == answer.Id;
+                    <div class="answer @(isAccepted ? "accepted" : "")" id="answer-@answer.Id">
+                        <div class="post-layout">
+                            <div class="vote-cell">
+                                <button class="vote-btn upvote" data-post-id="@answer.Id" data-vote-type="up">▲</button>
+                                <div class="vote-count">@answer.Score</div>
+                                <button class="vote-btn downvote" data-post-id="@answer.Id" data-vote-type="down">▼</button>
+                                @if (isAccepted)
+                                {
+                                    <div class="accepted-checkmark" title="Accepted answer">✓</div>
+                                }
+                            </div>
+
+                            <div class="post-body">
+                                <div class="post-text">
+                                    @Html.Raw(answer.Body)
+                                </div>
+
+                                <div class="post-footer">
+                                    <div class="post-menu">
+                                        <a href="#">Share</a>
+                                        <a href="#">Edit</a>
+                                        <a href="#">Follow</a>
+                                    </div>
+                                    <div class="post-signature">
+                                        <div class="signature-time">answered @answer.CreationDate.ToString("MMM d, yyyy 'at' H:mm")</div>
+                                        @if (answer.Owner != null)
+                                        {
+                                            <div class="signature-user">
+                                                <img src="@answer.Owner.GravatarUrl" alt="@answer.Owner.DisplayName" class="user-avatar" />
+                                                <div class="user-details">
+                                                    <a href="/Users/Profile/@answer.Owner.Id">@answer.Owner.DisplayName</a>
+                                                    <span class="user-rep">@answer.Owner.Reputation.ToString("N0")</span>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Answer comments -->
+                                <div class="comments-section">
+                                    @if (Model.ViewModel.AnswerComments.TryGetValue(answer.Id, out var answerComments) && answerComments.Any())
+                                    {
+                                        <ul class="comments-list">
+                                            @foreach (var comment in answerComments)
+                                            {
+                                                <li class="comment">
+                                                    <span class="comment-score">@(comment.Score > 0 ? comment.Score.ToString() : "")</span>
+                                                    <span class="comment-text">@comment.Text</span>
+                                                    <span class="comment-user">
+                                                        – @if (comment.User != null)
+                                                        {
+                                                            <a href="/Users/Profile/@comment.User.Id">@comment.User.DisplayName</a>
+                                                        }
+                                                        else
+                                                        {
+                                                            @comment.UserDisplayName
+                                                        }
+                                                    </span>
+                                                    <span class="comment-date">@comment.CreationDate.ToString("MMM d, yyyy 'at' H:mm")</span>
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                    <a href="#" class="add-comment-link" data-post-id="@answer.Id">Add a comment</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Post your answer -->
+                <div class="your-answer">
+                    <h2>Your Answer</h2>
+                    <form method="post" asp-page-handler="Answer">
+                        <input type="hidden" name="questionId" value="@question.Id" />
+                        <textarea name="body" class="answer-textarea" rows="10" placeholder="Write your answer here..."></textarea>
+                        <button type="submit" class="btn btn-primary">Post Your Answer</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="question-sidebar">
+            @if (Model.ViewModel.RelatedQuestions?.Any() == true)
+            {
+                <div class="sidebar-widget">
+                    <h3>Related</h3>
+                    <ul class="related-list">
+                        @foreach (var link in Model.ViewModel.RelatedQuestions.Take(5))
+                        {
+                            <li>
+                                <span class="related-score @(link.RelatedPost?.Score < 0 ? "negative" : link.RelatedPost?.AcceptedAnswerId.HasValue == true ? "accepted" : "")">
+                                    @link.RelatedPost?.Score
+                                </span>
+                                <a href="/Questions/Details/@link.RelatedPostId">@link.RelatedPost?.Title</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (Model.ViewModel.LinkedQuestions?.Any() == true)
+            {
+                <div class="sidebar-widget">
+                    <h3>Linked</h3>
+                    <ul class="related-list">
+                        @foreach (var link in Model.ViewModel.LinkedQuestions.Take(5))
+                        {
+                            <li>
+                                <span class="related-score @(link.RelatedPost?.Score < 0 ? "negative" : link.RelatedPost?.AcceptedAnswerId.HasValue == true ? "accepted" : "")">
+                                    @link.RelatedPost?.Score
+                                </span>
+                                <a href="/Questions/Details/@link.RelatedPostId">@link.RelatedPost?.Title</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+        </aside>
+    </div>
+}

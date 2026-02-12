@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Build results
+**/bin/
+**/obj/
+**/out/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.suo
+
+# Test results
+**/TestResults/
+
+# Misc
+**/.DS_Store
+**/Thumbs.db
+*.md
+!README.md
+
+# Docker
+**/docker-compose*.yml
+**/.docker
+Dockerfile*

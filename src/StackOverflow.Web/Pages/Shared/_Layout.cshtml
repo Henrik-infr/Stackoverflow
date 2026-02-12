@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Stack Overflow</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <header class="top-bar">
+        <div class="container">
+            <a href="/" class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">stack<strong>overflow</strong></span>
+            </a>
+            <nav class="nav-links">
+                <a href="/Questions">Questions</a>
+                <a href="/Tags">Tags</a>
+                <a href="/Users">Users</a>
+            </nav>
+            <form class="search-form" action="/Search" method="get">
+                <input type="search" name="q" placeholder="Search..." class="search-input" value="@Context.Request.Query["q"]" />
+                <button type="submit" class="search-btn">🔍</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="container main-content">
+        @RenderBody()
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; @DateTime.Now.Year Stack Overflow Clone - Built with ASP.NET Core & Dapper</p>
+        </div>
+    </footer>
+
+    <script src="~/js/site.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

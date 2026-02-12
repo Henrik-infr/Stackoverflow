@@ -1,0 +1,41 @@
+@page
+@model StackOverflow.Web.Pages.Questions.IndexModel
+@{
+    ViewData["Title"] = "All Questions";
+}
+
+<div class="questions-page">
+    <div class="page-header">
+        <h1>All Questions</h1>
+        <a href="/Questions/Ask" class="btn btn-primary">Ask Question</a>
+    </div>
+
+    <div class="sub-header">
+        <span class="count">@Model.ViewModel.TotalCount.ToString("N0") questions</span>
+        <div class="sort-tabs">
+            <a href="?sort=newest" class="tab @(Model.ViewModel.SortBy == "newest" ? "active" : "")">Newest</a>
+            <a href="?sort=active" class="tab @(Model.ViewModel.SortBy == "active" || string.IsNullOrEmpty(Model.ViewModel.SortBy) ? "active" : "")">Active</a>
+            <a href="?sort=votes" class="tab @(Model.ViewModel.SortBy == "votes" ? "active" : "")">Votes</a>
+            <a href="?sort=unanswered" class="tab @(Model.ViewModel.SortBy == "unanswered" ? "active" : "")">Unanswered</a>
+        </div>
+    </div>
+
+    @if (Model.ViewModel.Questions?.Any() == true)
+    {
+        <div class="question-list">
+            @foreach (var question in Model.ViewModel.Questions)
+            {
+                <partial name="_QuestionSummary" model="question" />
+            }
+        </div>
+
+        <partial name="_Pagination" model="@((Model.ViewModel.Page, Model.ViewModel.TotalPages, "/Questions", new Dictionary<string, string> { ["sort"] = Model.ViewModel.SortBy ?? "active" }))" />
+    }
+    else
+    {
+        <div class="empty-state">
+            <p>No questions found.</p>
+            <a href="/Questions/Ask" class="btn btn-primary">Ask the first question</a>
+        </div>
+    }
+</div>

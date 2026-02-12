@@ -1,0 +1,71 @@
+@page
+@model StackOverflow.Web.Pages.IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="home-page">
+    <div class="main-column">
+        <div class="section-header">
+            <h1>Top Questions</h1>
+            <a href="/Questions/Ask" class="btn btn-primary">Ask Question</a>
+        </div>
+
+        @if (Model.RecentQuestions?.Any() == true)
+        {
+            <div class="question-list">
+                @foreach (var question in Model.RecentQuestions)
+                {
+                    <partial name="_QuestionSummary" model="question" />
+                }
+            </div>
+            <div class="view-more">
+                <a href="/Questions" class="btn btn-secondary">View all questions</a>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <p>No questions yet. Be the first to ask!</p>
+                <a href="/Questions/Ask" class="btn btn-primary">Ask a Question</a>
+            </div>
+        }
+    </div>
+
+    <aside class="sidebar">
+        <div class="sidebar-widget">
+            <h3>Popular Tags</h3>
+            @if (Model.PopularTags?.Any() == true)
+            {
+                <div class="tag-list">
+                    @foreach (var tag in Model.PopularTags)
+                    {
+                        <a href="/Tags/Details/@tag.TagName" class="tag">
+                            @tag.TagName
+                            <span class="tag-count">×@tag.Count.ToString("N0")</span>
+                        </a>
+                    }
+                </div>
+            }
+            <a href="/Tags" class="widget-link">View all tags</a>
+        </div>
+
+        <div class="sidebar-widget">
+            <h3>Top Users</h3>
+            @if (Model.TopUsers?.Any() == true)
+            {
+                <div class="user-list-compact">
+                    @foreach (var user in Model.TopUsers)
+                    {
+                        <a href="/Users/Profile/@user.Id" class="user-compact">
+                            <img src="@user.GravatarUrl" alt="@user.DisplayName" class="user-avatar-sm" />
+                            <span class="user-name">@user.DisplayName</span>
+                            <span class="user-rep">@user.Reputation.ToString("N0")</span>
+                        </a>
+                    }
+                </div>
+            }
+            <a href="/Users" class="widget-link">View all users</a>
+        </div>
+    </aside>
+</div>

@@ -1,0 +1,66 @@
+@model (int Page, int TotalPages, string BaseUrl, Dictionary<string, string>? QueryParams)
+
+@{
+    var (page, totalPages, baseUrl, queryParams) = Model;
+    queryParams ??= new Dictionary<string, string>();
+
+    string BuildUrl(int targetPage)
+    {
+        var allParams = new Dictionary<string, string>(queryParams)
+        {
+            ["page"] = targetPage.ToString()
+        };
+        var queryString = string.Join("&", allParams.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
+        return $"{baseUrl}?{queryString}";
+    }
+}
+
+@if (totalPages > 1)
+{
+    <nav class="pagination">
+        @if (page > 1)
+        {
+            <a href="@BuildUrl(page - 1)" class="page-link">Prev</a>
+        }
+
+        @{
+            var startPage = Math.Max(1, page - 2);
+            var endPage = Math.Min(totalPages, page + 2);
+
+            if (startPage > 1)
+            {
+                <a href="@BuildUrl(1)" class="page-link">1</a>
+                if (startPage > 2)
+                {
+                    <span class="page-ellipsis">...</span>
+                }
+            }
+
+            for (var i = startPage; i <= endPage; i++)
+            {
+                if (i == page)
+                {
+                    <span class="page-link current">@i</span>
+                }
+                else
+                {
+                    <a href="@BuildUrl(i)" class="page-link">@i</a>
+                }
+            }
+
+            if (endPage < totalPages)
+            {
+                if (endPage < totalPages - 1)
+                {
+                    <span class="page-ellipsis">...</span>
+                }
+                <a href="@BuildUrl(totalPages)" class="page-link">@totalPages</a>
+            }
+        }
+
+        @if (page < totalPages)
+        {
+            <a href="@BuildUrl(page + 1)" class="page-link">Next</a>
+        }
+    </nav>
+}
