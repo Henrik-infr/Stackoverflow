@@ -1,10 +1,10 @@
 # Stack Overflow Clone
 
-A full-featured Stack Overflow clone built with ASP.NET Core 8, Dapper, and Razor Pages.
+A full-featured Stack Overflow clone built with ASP.NET Core 10, Dapper, and Razor Pages.
 
 ## Technology Stack
 
-- **ASP.NET Core 8** - Web framework
+- **ASP.NET Core 10** - Web framework
 - **Dapper** - Micro-ORM (same as Stack Overflow uses)
 - **Razor Pages** - Server-rendered UI
 - **SQL Server** - Database
@@ -124,6 +124,126 @@ The application is primarily server-rendered with Razor Pages:
 - All database operations are asynchronous
 - Error handling includes graceful fallbacks when the database is unavailable
 - The UI is inspired by Stack Overflow's design
+
+## Deploying to Intility Developer Platform (Argo CD)
+
+### Prerequisites
+
+- Access to Intility Developer Platform
+- Container registry access (to push Docker images)
+- SQL Server database with Stack Exchange schema
+
+### Step 1: Build and Push Docker Image
+
+```bash
+# Build the image
+docker build -t your-registry.intility.com/stackoverflow:latest .
+
+# Push to registry
+docker push your-registry.intility.com/stackoverflow:latest
+```
+
+### Step 2: Configure Kubernetes Manifests
+
+1. Update `k8s/secret.yaml` with your SQL Server connection string:
+   ```yaml
+   stringData:
+     connection-string: "Server=your-server;Database=StackOverflow;User Id=user;Password=pass;TrustServerCertificate=true;"
+   ```
+
+2. Update `k8s/ingress.yaml` with your domain:
+   ```yaml
+   spec:
+     rules:
+       - host: stackoverflow.apps.intility.com
+   ```
+
+3. Update `k8s/kustomization.yaml` with your container registry:
+   ```yaml
+   images:
+     - name: stackoverflow
+       newName: your-registry.intility.com/stackoverflow
+       newTag: latest
+   ```
+
+4. (Optional) Configure external database route in `k8s/external-db-service.yaml`
+
+### Step 3: Deploy with Argo CD
+
+**Option A: Using Argo CD Application manifest**
+
+1. Update `k8s/argocd-application.yaml` with your Git repository URL
+2. Apply the Application:
+   ```bash
+   kubectl apply -f k8s/argocd-application.yaml
+   ```
+
+**Option B: Using Argo CD CLI**
+
+```bash
+argocd app create stackoverflow \
+  --repo https://github.com/YOUR_ORG/stackoverflow.git \
+  --path k8s \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace stackoverflow \
+  --sync-policy automated
+```
+
+**Option C: Using Argo CD UI**
+
+1. Navigate to Argo CD UI
+2. Click "New App"
+3. Fill in:
+   - Application Name: `stackoverflow`
+   - Project: `default`
+   - Repository URL: Your Git repo
+   - Path: `k8s`
+   - Cluster: Your target cluster
+   - Namespace: `stackoverflow`
+4. Click "Create"
+
+### Step 4: Verify Deployment
+
+```bash
+# Check pods
+kubectl get pods -n stackoverflow
+
+# Check service
+kubectl get svc -n stackoverflow
+
+# Check ingress
+kubectl get ingress -n stackoverflow
+
+# View logs
+kubectl logs -l app=stackoverflow-web -n stackoverflow
+```
+
+### Kubernetes Resources
+
+| File | Description |
+|------|-------------|
+| `k8s/namespace.yaml` | Namespace definition |
+| `k8s/deployment.yaml` | Web app deployment (2 replicas) |
+| `k8s/service.yaml` | ClusterIP service |
+| `k8s/ingress.yaml` | Ingress for external access |
+| `k8s/secret.yaml` | Database connection string |
+| `k8s/external-db-service.yaml` | External database service (optional) |
+| `k8s/kustomization.yaml` | Kustomize configuration |
+| `k8s/argocd-application.yaml` | Argo CD Application manifest |
+
+### Connecting to External SQL Server
+
+If your SQL Server is outside the cluster, you have two options:
+
+1. **ExternalName Service** (for DNS-resolvable hosts):
+   ```yaml
+   spec:
+     type: ExternalName
+     externalName: your-sqlserver.database.windows.net
+   ```
+
+2. **Static IP Endpoints** (for IP addresses):
+   See commented section in `k8s/external-db-service.yaml`
 
 ## License
 

@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sqlserver-external
+  namespace: stackoverflow
+  labels:
+    app.kubernetes.io/name: stackoverflow
+    app.kubernetes.io/component: database
+spec:
+  type: ExternalName
+  externalName: your-sqlserver.database.windows.net  # Update with your SQL Server hostname
+  ports:
+    - port: 1433
+      targetPort: 1433
+      protocol: TCP
+---
+# Alternative: If your SQL Server has a static IP, use Endpoints
+# apiVersion: v1
+# kind: Endpoints
+# metadata:
+#   name: sqlserver-static
+#   namespace: stackoverflow
+# subsets:
+#   - addresses:
+#       - ip: 10.0.0.100  # Your SQL Server IP
+#     ports:
+#       - port: 1433
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: sqlserver-static
+#   namespace: stackoverflow
+# spec:
+#   ports:
+#     - port: 1433
+#       targetPort: 1433

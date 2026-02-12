@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stackoverflow-web
+  namespace: stackoverflow
+  labels:
+    app: stackoverflow-web
+    app.kubernetes.io/name: stackoverflow
+    app.kubernetes.io/component: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: stackoverflow-web
+  template:
+    metadata:
+      labels:
+        app: stackoverflow-web
+        app.kubernetes.io/name: stackoverflow
+        app.kubernetes.io/component: web
+    spec:
+      containers:
+        - name: web
+          image: stackoverflow:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_URLS
+              value: "http://+:8080"
+            - name: ConnectionStrings__StackOverflow
+              valueFrom:
+                secretKeyRef:
+                  name: stackoverflow-secrets
+                  key: connection-string
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+      restartPolicy: Always

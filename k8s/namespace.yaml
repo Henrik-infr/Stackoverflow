@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stackoverflow
+  labels:
+    app.kubernetes.io/name: stackoverflow
+    app.kubernetes.io/managed-by: argocd
