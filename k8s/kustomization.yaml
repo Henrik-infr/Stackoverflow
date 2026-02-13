@@ -16,5 +16,5 @@ commonLabels:
 
 images:
   - name: stackoverflow
-    newName: your-registry.intility.com/stackoverflow  # Update with your container registry
+    newName: ghcr.io/henrik-infr/stackoverflow
     newTag: latest

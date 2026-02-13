@@ -2,13 +2,13 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: stackoverflow
-  namespace: argocd  # or your Argo CD namespace
+  namespace: openshift-gitops
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default  # Update with your Argo CD project
+  project: default
   source:
-    repoURL: https://github.com/YOUR_ORG/stackoverflow.git  # Update with your repo URL
+    repoURL: https://github.com/Henrik-infr/Stackoverflow.git
     targetRevision: main
     path: k8s
   destination:
