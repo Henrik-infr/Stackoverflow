@@ -16,5 +16,5 @@ commonLabels:
 
 images:
   - name: stackoverflow
-    newName: ghcr.io/henrik-infr/stackoverflow
+    newName: image-registry.openshift-image-registry.svc:5000/stackoverflow/stackoverflow-web
     newTag: latest
