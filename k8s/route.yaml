@@ -1,0 +1,20 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: stackoverflow-web
+  namespace: stackoverflow
+  labels:
+    app: stackoverflow-web
+    app.kubernetes.io/name: stackoverflow
+    app.kubernetes.io/component: web
+spec:
+  host: stackoverflow.apps.stackoverflow-app-0rzvso.clusters.intilitycloud.com
+  to:
+    kind: Service
+    name: stackoverflow-web
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
