@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: stackoverflow
 spec:
   rules:
-    - host: stackoverflow.apps.stackoverflow-dhmkov.clusters.intilitycloud.com
+    - host: stackoverflow.apps.stackoverflow-app-0rzvso.clusters.intilitycloud.com
       http:
         paths:
           - path: /
@@ -19,4 +19,4 @@ spec:
                   number: 80
   tls:
     - hosts:
-        - stackoverflow.apps.stackoverflow-dhmkov.clusters.intilitycloud.com
+        - stackoverflow.apps.stackoverflow-app-0rzvso.clusters.intilitycloud.com
