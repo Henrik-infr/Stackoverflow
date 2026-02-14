@@ -76,7 +76,10 @@ public class UserRepository : IUserRepository
 
         if (string.IsNullOrEmpty(filter))
         {
-            return await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM Users");
+            // Use partition stats for instant approximate count
+            return await connection.ExecuteScalarAsync<int>(
+                @"SELECT CAST(SUM(rows) AS INT) FROM sys.partitions
+                  WHERE object_id = OBJECT_ID('Users') AND index_id IN (0,1)");
         }
 
         return await connection.ExecuteScalarAsync<int>(

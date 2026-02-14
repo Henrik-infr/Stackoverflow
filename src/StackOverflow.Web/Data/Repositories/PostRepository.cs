@@ -124,16 +124,20 @@ public class PostRepository : IPostRepository
     public async Task<int> GetQuestionCountAsync()
     {
         using var connection = _connectionFactory.CreateConnection();
+        // Use filtered index partition stats for fast approximate count (instant vs 3+ seconds for COUNT)
         return await connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM Posts WHERE PostTypeId = 1 AND DeletionDate IS NULL");
+            @"SELECT CAST(rows AS INT) FROM sys.partitions
+              WHERE object_id = OBJECT_ID('Posts')
+              AND index_id = (SELECT index_id FROM sys.indexes WHERE object_id = OBJECT_ID('Posts') AND name = 'IX_Posts_Questions_Filtered')");
     }
 
     public async Task<int> GetQuestionCountByTagAsync(string tagName)
     {
         using var connection = _connectionFactory.CreateConnection();
         var tagPattern = $"%<{tagName}>%";
+        // Cap at 10000 to avoid full table scan on LIKE query
         return await connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM Posts WHERE PostTypeId = 1 AND DeletionDate IS NULL AND Tags LIKE @TagPattern",
+            "SELECT COUNT(*) FROM (SELECT TOP 10000 Id FROM Posts WHERE PostTypeId = 1 AND DeletionDate IS NULL AND Tags LIKE @TagPattern) AS t",
             new { TagPattern = tagPattern });
     }
 
@@ -209,10 +213,11 @@ public class PostRepository : IPostRepository
         using var connection = _connectionFactory.CreateConnection();
         var searchPattern = $"%{query}%";
 
+        // Cap at 10000 to avoid full table scan on LIKE query
         return await connection.ExecuteScalarAsync<int>(
-            @"SELECT COUNT(*) FROM Posts
+            @"SELECT COUNT(*) FROM (SELECT TOP 10000 Id FROM Posts
               WHERE PostTypeId = 1 AND DeletionDate IS NULL
-              AND (Title LIKE @SearchPattern OR Body LIKE @SearchPattern OR Tags LIKE @SearchPattern)",
+              AND (Title LIKE @SearchPattern OR Body LIKE @SearchPattern OR Tags LIKE @SearchPattern)) AS t",
             new { SearchPattern = searchPattern });
     }
 
