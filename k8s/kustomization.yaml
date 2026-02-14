@@ -5,7 +5,13 @@ namespace: stackoverflow
 
 resources:
   - namespace.yaml
-  - secret.yaml
+  # Secrets managed manually via kubectl (not in git)
+  # - secret.yaml
+  # - sqlserver-secret.yaml
+  - sqlserver-scc.yaml
+  - sqlserver-statefulset.yaml
+  - sqlserver-service.yaml
+  - sqlserver-attach-job.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml

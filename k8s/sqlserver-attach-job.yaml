@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sqlserver-attach
+  namespace: stackoverflow
+  annotations:
+    argocd.argoproj.io/sync-options: Replace=true
+  labels:
+    app.kubernetes.io/name: stackoverflow
+    app.kubernetes.io/component: database
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app: sqlserver-attach
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: attach-db
+          image: mcr.microsoft.com/mssql-tools:latest
+          env:
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sqlserver-secrets
+                  key: sa-password
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for SQL Server to be ready..."
+              for i in $(seq 1 60); do
+                /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P "$SA_PASSWORD" -C -Q "SELECT 1" > /dev/null 2>&1 && break
+                echo "Attempt $i: SQL Server not ready yet, waiting..."
+                sleep 10
+              done
+
+              echo "Checking if StackOverflow database already exists..."
+              DB_EXISTS=$(/opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P "$SA_PASSWORD" -C -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM sys.databases WHERE name = 'StackOverflow'" -h -1 -W)
+
+              if [ "$DB_EXISTS" -gt 0 ]; then
+                echo "StackOverflow database already exists, skipping attach."
+                exit 0
+              fi
+
+              echo "Attaching StackOverflow database..."
+              /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P "$SA_PASSWORD" -C -Q "
+              CREATE DATABASE StackOverflow ON
+                (FILENAME = '/var/opt/mssql/data/StackOverflow_1.mdf'),
+                (FILENAME = '/var/opt/mssql/data/StackOverflow_2.ndf'),
+                (FILENAME = '/var/opt/mssql/data/StackOverflow_3.ndf'),
+                (FILENAME = '/var/opt/mssql/data/StackOverflow_4.ndf')
+              LOG ON
+                (FILENAME = '/var/opt/mssql/data/StackOverflow_log.ldf')
+              FOR ATTACH;
+              "
+
+              echo "Database attached successfully."
+              /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P "$SA_PASSWORD" -C -Q "SELECT name, state_desc FROM sys.databases WHERE name = 'StackOverflow'"

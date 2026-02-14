@@ -1,0 +1,175 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sqlserver
+  namespace: stackoverflow
+  labels:
+    app.kubernetes.io/name: stackoverflow
+    app.kubernetes.io/component: database
+spec:
+  serviceName: sqlserver
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sqlserver
+  template:
+    metadata:
+      labels:
+        app: sqlserver
+        app.kubernetes.io/name: stackoverflow
+        app.kubernetes.io/component: database
+    spec:
+      terminationGracePeriodSeconds: 30
+      initContainers:
+        - name: download-database
+          image: mcr.microsoft.com/azure-cli:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Checking if all database files are already extracted..."
+              if ls /data/*.mdf 1>/dev/null 2>&1 && ! ls /data/*.7z 1>/dev/null 2>&1; then
+                echo "Database files already exist and no archives remaining, skipping download."
+                exit 0
+              fi
+              echo "Downloading 7z archives from Azure File Share to persistent volume..."
+              SHARE_DIR="StackOverflow-SQL-Server-202206"
+              for archive in StackOverflow_1.7z StackOverflow_2.7z StackOverflow_3.7z StackOverflow_4.7z StackOverflow_log.7z; do
+                if [ -f "/data/$archive" ]; then
+                  REMOTE_SIZE=$(az storage file show \
+                    --account-name "$AZURE_STORAGE_ACCOUNT" \
+                    --account-key "$AZURE_STORAGE_KEY" \
+                    --share-name backup \
+                    --path "${SHARE_DIR}/${archive}" \
+                    --query "properties.contentLength" -o tsv)
+                  LOCAL_SIZE=$(stat -c%s "/data/$archive" 2>/dev/null || echo 0)
+                  if [ "$LOCAL_SIZE" -eq "$REMOTE_SIZE" ]; then
+                    echo "$archive already downloaded (${LOCAL_SIZE} bytes), skipping."
+                    continue
+                  else
+                    echo "$archive incomplete (${LOCAL_SIZE}/${REMOTE_SIZE} bytes), re-downloading..."
+                    rm -f "/data/$archive"
+                  fi
+                fi
+                echo "Downloading $archive..."
+                az storage file download \
+                  --account-name "$AZURE_STORAGE_ACCOUNT" \
+                  --account-key "$AZURE_STORAGE_KEY" \
+                  --share-name backup \
+                  --path "${SHARE_DIR}/${archive}" \
+                  --dest "/data/$archive" \
+                  --no-progress
+                echo "$archive downloaded."
+              done
+              echo "All downloads complete."
+              ls -lh /data/
+          env:
+            - name: AZURE_CONFIG_DIR
+              value: /tmp/.azure
+            - name: AZURE_STORAGE_ACCOUNT
+              valueFrom:
+                secretKeyRef:
+                  name: sqlserver-secrets
+                  key: azurestorageaccountname
+            - name: AZURE_STORAGE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sqlserver-secrets
+                  key: azurestorageaccountkey
+          volumeMounts:
+            - name: sqlserver-data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "2"
+        - name: extract-database
+          image: crazymax/7zip:latest
+          securityContext:
+            runAsUser: 0
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "Extracting any remaining 7z archives..."
+              EXTRACTED=0
+              for archive in /data/*.7z; do
+                [ -f "$archive" ] || continue
+                echo "Extracting $archive..."
+                7z x -o/data "$archive" -y
+                echo "Removing $archive..."
+                rm -f "$archive"
+                EXTRACTED=$((EXTRACTED + 1))
+              done
+              if [ "$EXTRACTED" -eq 0 ]; then
+                echo "No 7z archives found, nothing to extract."
+              else
+                echo "$EXTRACTED archive(s) extracted."
+              fi
+              echo "Setting permissions for SQL Server..."
+              chmod 777 /data/
+              chmod 666 /data/*.mdf /data/*.ndf /data/*.ldf 2>/dev/null || true
+              echo "Files on disk:"
+              ls -lh /data/
+          volumeMounts:
+            - name: sqlserver-data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "2"
+      containers:
+        - name: sqlserver
+          image: mcr.microsoft.com/mssql/server:2022-latest
+          ports:
+            - containerPort: 1433
+              name: sql
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sqlserver-secrets
+                  key: sa-password
+            - name: MSSQL_DATA_DIR
+              value: /var/opt/mssql/data
+          volumeMounts:
+            - name: sqlserver-data
+              mountPath: /var/opt/mssql/data
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "500m"
+            limits:
+              memory: "8Gi"
+              cpu: "2"
+          livenessProbe:
+            tcpSocket:
+              port: 1433
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            tcpSocket:
+              port: 1433
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: sqlserver-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 600Gi
