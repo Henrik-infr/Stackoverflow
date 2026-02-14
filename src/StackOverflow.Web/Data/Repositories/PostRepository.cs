@@ -61,7 +61,10 @@ public class PostRepository : IPostRepository
         var offset = (page - 1) * pageSize;
 
         return await connection.QueryAsync<Post, User, Post>(
-            $@"SELECT p.*, u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
+            $@"SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
+                      p.OwnerUserId, p.Title, p.Tags, p.AnswerCount, p.CommentCount, p.FavoriteCount,
+                      p.LastActivityDate, p.ClosedDate,
+                      u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
                FROM Posts p
                LEFT JOIN Users u ON p.OwnerUserId = u.Id
                WHERE p.PostTypeId = 1 AND p.DeletionDate IS NULL
@@ -83,7 +86,10 @@ public class PostRepository : IPostRepository
         var tagPattern = $"%<{tagName}>%";
 
         return await connection.QueryAsync<Post, User, Post>(
-            @"SELECT p.*, u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
+            @"SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
+                     p.OwnerUserId, p.Title, p.Tags, p.AnswerCount, p.CommentCount, p.FavoriteCount,
+                     p.LastActivityDate, p.ClosedDate,
+                     u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
               FROM Posts p
               LEFT JOIN Users u ON p.OwnerUserId = u.Id
               WHERE p.PostTypeId = 1 AND p.DeletionDate IS NULL
@@ -146,7 +152,10 @@ public class PostRepository : IPostRepository
         using var connection = _connectionFactory.CreateConnection();
 
         return await connection.QueryAsync<Post, User, Post>(
-            @"SELECT TOP (@Count) p.*, u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
+            @"SELECT TOP (@Count) p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
+                     p.OwnerUserId, p.Title, p.Tags, p.AnswerCount, p.CommentCount, p.FavoriteCount,
+                     p.LastActivityDate, p.ClosedDate,
+                     u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
               FROM Posts p
               LEFT JOIN Users u ON p.OwnerUserId = u.Id
               WHERE p.PostTypeId = 1 AND p.DeletionDate IS NULL
@@ -165,7 +174,8 @@ public class PostRepository : IPostRepository
         using var connection = _connectionFactory.CreateConnection();
 
         return await connection.QueryAsync<Post>(
-            @"SELECT TOP (@Count) *
+            @"SELECT TOP (@Count) Id, PostTypeId, AcceptedAnswerId, CreationDate, Score, ViewCount,
+                     OwnerUserId, Title, Tags, AnswerCount, CommentCount, FavoriteCount, LastActivityDate
               FROM Posts
               WHERE OwnerUserId = @UserId AND PostTypeId = 1 AND DeletionDate IS NULL
               ORDER BY CreationDate DESC",
@@ -177,7 +187,8 @@ public class PostRepository : IPostRepository
         using var connection = _connectionFactory.CreateConnection();
 
         return await connection.QueryAsync<Post>(
-            @"SELECT TOP (@Count) a.*, q.Title
+            @"SELECT TOP (@Count) a.Id, a.PostTypeId, a.ParentId, a.CreationDate, a.Score,
+                     a.OwnerUserId, a.CommentCount, q.Title
               FROM Posts a
               INNER JOIN Posts q ON a.ParentId = q.Id
               WHERE a.OwnerUserId = @UserId AND a.PostTypeId = 2 AND a.DeletionDate IS NULL
@@ -192,11 +203,14 @@ public class PostRepository : IPostRepository
         var searchPattern = $"%{query}%";
 
         return await connection.QueryAsync<Post, User, Post>(
-            @"SELECT p.*, u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
+            @"SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
+                     p.OwnerUserId, p.Title, p.Tags, p.AnswerCount, p.CommentCount, p.FavoriteCount,
+                     p.LastActivityDate, p.ClosedDate,
+                     u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
               FROM Posts p
               LEFT JOIN Users u ON p.OwnerUserId = u.Id
               WHERE p.PostTypeId = 1 AND p.DeletionDate IS NULL
-              AND (p.Title LIKE @SearchPattern OR p.Body LIKE @SearchPattern OR p.Tags LIKE @SearchPattern)
+              AND (p.Title LIKE @SearchPattern OR p.Tags LIKE @SearchPattern)
               ORDER BY p.Score DESC, p.LastActivityDate DESC
               OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
             (post, user) =>
@@ -213,11 +227,11 @@ public class PostRepository : IPostRepository
         using var connection = _connectionFactory.CreateConnection();
         var searchPattern = $"%{query}%";
 
-        // Cap at 10000 to avoid full table scan on LIKE query
+        // Cap at 10000 to avoid full table scan; search Title and Tags only (Body LIKE is too slow)
         return await connection.ExecuteScalarAsync<int>(
             @"SELECT COUNT(*) FROM (SELECT TOP 10000 Id FROM Posts
               WHERE PostTypeId = 1 AND DeletionDate IS NULL
-              AND (Title LIKE @SearchPattern OR Body LIKE @SearchPattern OR Tags LIKE @SearchPattern)) AS t",
+              AND (Title LIKE @SearchPattern OR Tags LIKE @SearchPattern)) AS t",
             new { SearchPattern = searchPattern });
     }
 
@@ -246,8 +260,8 @@ public class PostRepository : IPostRepository
         using var connection = _connectionFactory.CreateConnection();
 
         var id = await connection.ExecuteScalarAsync<int>(
-            @"INSERT INTO Posts (PostTypeId, ParentId, CreationDate, Score, Body, OwnerUserId, CommentCount)
-              VALUES (2, @ParentId, @CreationDate, 0, @Body, @OwnerUserId, 0);
+            @"INSERT INTO Posts (PostTypeId, ParentId, CreationDate, LastActivityDate, Score, Body, OwnerUserId, CommentCount)
+              VALUES (2, @ParentId, @CreationDate, @CreationDate, 0, @Body, @OwnerUserId, 0);
               SELECT CAST(SCOPE_IDENTITY() AS INT)",
             new
             {

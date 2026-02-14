@@ -63,7 +63,9 @@ public class UserRepository : IUserRepository
         var filterParam = string.IsNullOrEmpty(filter) ? null : $"%{filter}%";
 
         return await connection.QueryAsync<User>(
-            $@"SELECT * FROM Users
+            $@"SELECT Id, Reputation, CreationDate, DisplayName, LastAccessDate, Location,
+                      Views, UpVotes, DownVotes, ProfileImageUrl, EmailHash, AccountId
+               FROM Users
                {whereClause}
                ORDER BY {orderBy}
                OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
@@ -92,7 +94,9 @@ public class UserRepository : IUserRepository
         using var connection = _connectionFactory.CreateConnection();
 
         return await connection.QueryAsync<User>(
-            "SELECT TOP (@Count) * FROM Users ORDER BY Reputation DESC",
+            @"SELECT TOP (@Count) Id, Reputation, CreationDate, DisplayName, LastAccessDate, Location,
+                     Views, UpVotes, DownVotes, ProfileImageUrl, EmailHash, AccountId
+              FROM Users ORDER BY Reputation DESC",
             new { Count = count });
     }
 
