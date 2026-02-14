@@ -6,6 +6,7 @@ using StackOverflow.Web.Models;
 
 namespace StackOverflow.Web.Pages.Questions;
 
+[IgnoreAntiforgeryToken]
 public class AskModel : PageModel
 {
     private readonly IPostRepository _postRepository;

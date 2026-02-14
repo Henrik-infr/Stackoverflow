@@ -12,7 +12,7 @@
             <div class="form-section">
                 <label for="Title">Title</label>
                 <p class="form-hint">Be specific and imagine you're asking a question to another person.</p>
-                <input type="text" id="Title" name="Title" class="form-input"
+                <input type="text" id="Title" name="Input.Title" class="form-input"
                        placeholder="e.g. Is there an R function for finding the index of an element in a vector?"
                        value="@Model.Input?.Title" required />
                 <span asp-validation-for="Input.Title" class="validation-error"></span>
@@ -21,7 +21,7 @@
             <div class="form-section">
                 <label for="Body">Body</label>
                 <p class="form-hint">Include all the information someone would need to answer your question.</p>
-                <textarea id="Body" name="Body" class="form-textarea" rows="15"
+                <textarea id="Body" name="Input.Body" class="form-textarea" rows="15"
                           placeholder="Explain your problem in detail..." required>@Model.Input?.Body</textarea>
                 <span asp-validation-for="Input.Body" class="validation-error"></span>
             </div>
@@ -29,7 +29,7 @@
             <div class="form-section">
                 <label for="Tags">Tags</label>
                 <p class="form-hint">Add up to 5 tags to describe what your question is about (comma-separated).</p>
-                <input type="text" id="Tags" name="Tags" class="form-input"
+                <input type="text" id="Tags" name="Input.Tags" class="form-input"
                        placeholder="e.g. c#, asp.net, entity-framework"
                        value="@Model.Input?.Tags" />
                 <span asp-validation-for="Input.Tags" class="validation-error"></span>
