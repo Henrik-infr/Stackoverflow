@@ -30,17 +30,17 @@ public class DetailsModel : PageModel
         _logger = logger;
     }
 
-    public async Task OnGetAsync(string tagName, int page = 1, string? sort = null)
+    public async Task OnGetAsync(string tagName, int pg = 1, string? sort = null)
     {
         try
         {
             TagName = tagName;
-            Page = page;
+            Page = pg;
             SortBy = sort ?? "active";
 
             Tag = await _tagRepository.GetByNameAsync(tagName);
             TotalCount = await _postRepository.GetQuestionCountByTagAsync(tagName);
-            Questions = (await _postRepository.GetQuestionsByTagAsync(tagName, page, PageSize)).ToList();
+            Questions = (await _postRepository.GetQuestionsByTagAsync(tagName, pg, PageSize)).ToList();
         }
         catch (Exception ex)
         {

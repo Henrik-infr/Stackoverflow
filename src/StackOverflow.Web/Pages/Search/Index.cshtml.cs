@@ -17,13 +17,13 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public async Task OnGetAsync(string? q = null, int page = 1, string? sort = null)
+    public async Task OnGetAsync(string? q = null, int pg = 1, string? sort = null)
     {
         try
         {
             if (!string.IsNullOrWhiteSpace(q))
             {
-                ViewModel = await _searchService.SearchAsync(q, page, 15, sort);
+                ViewModel = await _searchService.SearchAsync(q, pg, 15, sort);
                 ViewModel.SortBy = sort;
             }
         }

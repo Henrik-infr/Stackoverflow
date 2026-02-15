@@ -8,7 +8,7 @@
     {
         var allParams = new Dictionary<string, string>(queryParams)
         {
-            ["page"] = targetPage.ToString()
+            ["pg"] = targetPage.ToString()
         };
         var queryString = string.Join("&", allParams.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
         return $"{baseUrl}?{queryString}";

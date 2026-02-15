@@ -17,15 +17,15 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public async Task OnGetAsync(int page = 1, string? sort = null, string? filter = null)
+    public async Task OnGetAsync(int pg = 1, string? sort = null, string? filter = null)
     {
         try
         {
-            ViewModel.Page = page;
+            ViewModel.Page = pg;
             ViewModel.SortBy = sort ?? "popular";
             ViewModel.Filter = filter;
             ViewModel.TotalCount = await _tagRepository.GetTagCountAsync(filter);
-            ViewModel.Tags = (await _tagRepository.GetTagsAsync(page, ViewModel.PageSize, sort, filter)).ToList();
+            ViewModel.Tags = (await _tagRepository.GetTagsAsync(pg, ViewModel.PageSize, sort, filter)).ToList();
         }
         catch (Exception ex)
         {

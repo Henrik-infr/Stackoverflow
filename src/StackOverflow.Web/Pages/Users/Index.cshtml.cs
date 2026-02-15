@@ -17,15 +17,15 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public async Task OnGetAsync(int page = 1, string? sort = null, string? filter = null)
+    public async Task OnGetAsync(int pg = 1, string? sort = null, string? filter = null)
     {
         try
         {
-            ViewModel.Page = page;
+            ViewModel.Page = pg;
             ViewModel.SortBy = sort ?? "reputation";
             ViewModel.Filter = filter;
             ViewModel.TotalCount = await _userRepository.GetUserCountAsync(filter);
-            ViewModel.Users = (await _userRepository.GetUsersAsync(page, ViewModel.PageSize, sort, filter)).ToList();
+            ViewModel.Users = (await _userRepository.GetUsersAsync(pg, ViewModel.PageSize, sort, filter)).ToList();
         }
         catch (Exception ex)
         {

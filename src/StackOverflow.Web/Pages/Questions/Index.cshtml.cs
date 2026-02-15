@@ -17,14 +17,14 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public async Task OnGetAsync(int page = 1, string? sort = null)
+    public async Task OnGetAsync(int pg = 1, string? sort = null)
     {
         try
         {
-            ViewModel.Page = page;
+            ViewModel.Page = pg;
             ViewModel.SortBy = sort ?? "active";
             ViewModel.TotalCount = await _postRepository.GetQuestionCountAsync();
-            ViewModel.Questions = (await _postRepository.GetQuestionsAsync(page, ViewModel.PageSize, sort)).ToList();
+            ViewModel.Questions = (await _postRepository.GetQuestionsAsync(pg, ViewModel.PageSize, sort)).ToList();
         }
         catch (Exception ex)
         {
