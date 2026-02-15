@@ -128,7 +128,7 @@ spec:
               cpu: "2"
       containers:
         - name: sqlserver
-          image: image-registry.openshift-image-registry.svc:5000/stackoverflow/sqlserver-fts:latest
+          image: mcr.microsoft.com/mssql/server:2022-latest
           ports:
             - containerPort: 1433
               name: sql
