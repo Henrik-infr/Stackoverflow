@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using StackOverflow.Web.Data.Repositories;
+using StackOverflow.Web.Models;
 
 namespace StackOverflow.Web.Pages.Account;
 
@@ -20,7 +22,7 @@ public class LoginModel : PageModel
     {
     }
 
-    public async Task<IActionResult> OnPostAsync(string displayName)
+    public async Task<IActionResult> OnPostAsync(string displayName, string password)
     {
         if (string.IsNullOrWhiteSpace(displayName))
         {
@@ -28,10 +30,30 @@ public class LoginModel : PageModel
             return Page();
         }
 
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            ErrorMessage = "Please enter a password.";
+            return Page();
+        }
+
         var user = await _userRepository.GetByDisplayNameAsync(displayName.Trim());
         if (user == null)
         {
-            ErrorMessage = "No user found with that display name.";
+            ErrorMessage = "Invalid display name or password.";
+            return Page();
+        }
+
+        if (string.IsNullOrEmpty(user.PasswordHash))
+        {
+            ErrorMessage = "This account has no password set. Please contact support.";
+            return Page();
+        }
+
+        var hasher = new PasswordHasher<User>();
+        var result = hasher.VerifyHashedPassword(user, user.PasswordHash, password);
+        if (result == PasswordVerificationResult.Failed)
+        {
+            ErrorMessage = "Invalid display name or password.";
             return Page();
         }
 

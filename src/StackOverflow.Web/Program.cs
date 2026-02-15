@@ -26,6 +26,16 @@ builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
+// Add PasswordHash column if it doesn't exist
+using (var connection = app.Services.GetRequiredService<IDbConnectionFactory>().CreateConnection())
+{
+    connection.Open();
+    using var cmd = connection.CreateCommand();
+    cmd.CommandText = @"IF COL_LENGTH('Users', 'PasswordHash') IS NULL
+        ALTER TABLE Users ADD PasswordHash NVARCHAR(256) NULL";
+    cmd.ExecuteNonQuery();
+}
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {

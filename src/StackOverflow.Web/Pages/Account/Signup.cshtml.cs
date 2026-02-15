@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using StackOverflow.Web.Data.Repositories;
@@ -21,11 +22,23 @@ public class SignupModel : PageModel
     {
     }
 
-    public async Task<IActionResult> OnPostAsync(string displayName, string? location)
+    public async Task<IActionResult> OnPostAsync(string displayName, string password, string confirmPassword, string? location)
     {
         if (string.IsNullOrWhiteSpace(displayName))
         {
             ErrorMessage = "Display name is required.";
+            return Page();
+        }
+
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            ErrorMessage = "Password is required.";
+            return Page();
+        }
+
+        if (password != confirmPassword)
+        {
+            ErrorMessage = "Passwords do not match.";
             return Page();
         }
 
@@ -36,11 +49,13 @@ public class SignupModel : PageModel
             return Page();
         }
 
+        var hasher = new PasswordHasher<User>();
         var user = new User
         {
             DisplayName = displayName.Trim(),
             Location = string.IsNullOrWhiteSpace(location) ? null : location.Trim()
         };
+        user.PasswordHash = hasher.HashPassword(user, password);
 
         var userId = await _userRepository.CreateUserAsync(user);
 

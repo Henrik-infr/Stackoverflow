@@ -123,14 +123,15 @@ public class UserRepository : IUserRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         return await connection.ExecuteScalarAsync<int>(
-            @"INSERT INTO Users (Reputation, CreationDate, DisplayName, LastAccessDate, Location, Views, UpVotes, DownVotes)
-              VALUES (1, @CreationDate, @DisplayName, @CreationDate, @Location, 0, 0, 0);
+            @"INSERT INTO Users (Reputation, CreationDate, DisplayName, LastAccessDate, Location, Views, UpVotes, DownVotes, PasswordHash)
+              VALUES (1, @CreationDate, @DisplayName, @CreationDate, @Location, 0, 0, 0, @PasswordHash);
               SELECT CAST(SCOPE_IDENTITY() AS INT)",
             new
             {
                 CreationDate = DateTime.UtcNow,
                 user.DisplayName,
-                user.Location
+                user.Location,
+                user.PasswordHash
             });
     }
 }

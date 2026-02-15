@@ -5,9 +5,11 @@
 }
 
 <div class="auth-page">
-    <div class="auth-form-container">
-        <h1>Log In</h1>
+    <div class="auth-logo">
+        <span class="logo-icon">📚</span>
+    </div>
 
+    <div class="auth-form-container">
         @if (!string.IsNullOrEmpty(Model.ErrorMessage))
         {
             <div class="alert alert-danger">@Model.ErrorMessage</div>
@@ -15,14 +17,18 @@
 
         <form method="post">
             <div class="form-group">
-                <label for="displayName">Display Name</label>
-                <input type="text" id="displayName" name="displayName" class="form-control" required autofocus placeholder="Enter your display name" />
+                <label for="displayName">Display name</label>
+                <input type="text" id="displayName" name="displayName" class="form-control" required autofocus />
             </div>
-            <button type="submit" class="btn btn-primary btn-block">Log In</button>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" class="form-control" required />
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Log in</button>
         </form>
+    </div>
 
-        <div class="auth-footer">
-            <p>Don't have an account? <a href="/Account/Signup">Sign up</a></p>
-        </div>
+    <div class="auth-alternate">
+        Don't have an account? <a href="/Account/Signup">Sign up</a>
     </div>
 </div>

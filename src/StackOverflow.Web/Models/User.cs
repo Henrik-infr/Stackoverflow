@@ -16,6 +16,7 @@ public class User
     public string? ProfileImageUrl { get; set; }
     public string? EmailHash { get; set; }
     public int? AccountId { get; set; }
+    public string? PasswordHash { get; set; }
 
     // Computed properties
     public string GravatarUrl => !string.IsNullOrEmpty(EmailHash)
