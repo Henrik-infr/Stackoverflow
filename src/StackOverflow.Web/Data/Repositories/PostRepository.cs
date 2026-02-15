@@ -85,31 +85,27 @@ public class PostRepository : IPostRepository
         var offset = (page - 1) * pageSize;
         var tagPattern = $"%<{tagName}>%";
 
-        // Use a CTE with TOP to limit the scan scope, then paginate
+        // Grab first 500 matching rows (no inner ORDER BY so TOP can short-circuit the scan)
+        // then sort and paginate only the small result set
         return await connection.QueryAsync<Post, User, Post>(
-            @"WITH TaggedQuestions AS (
-                  SELECT TOP 10000 Id, PostTypeId, AcceptedAnswerId, CreationDate, Score, ViewCount,
-                         OwnerUserId, Title, Tags, AnswerCount, CommentCount, FavoriteCount,
-                         LastActivityDate, ClosedDate
-                  FROM Posts
-                  WHERE PostTypeId = 1 AND DeletionDate IS NULL
-                  AND Tags LIKE @TagPattern
-                  ORDER BY LastActivityDate DESC
-              )
-              SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
-                     p.OwnerUserId, p.Title, p.Tags, p.AnswerCount, p.CommentCount, p.FavoriteCount,
-                     p.LastActivityDate, p.ClosedDate,
-                     u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
-              FROM TaggedQuestions p
-              LEFT JOIN Users u ON p.OwnerUserId = u.Id
-              ORDER BY p.LastActivityDate DESC
-              OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
+            new CommandDefinition(
+                @"SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
+                         p.OwnerUserId, p.Title, p.Tags, p.AnswerCount, p.CommentCount, p.FavoriteCount,
+                         p.LastActivityDate, p.ClosedDate,
+                         u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
+                  FROM (SELECT TOP 500 * FROM Posts
+                        WHERE PostTypeId = 1 AND DeletionDate IS NULL
+                        AND Tags LIKE @TagPattern) p
+                  LEFT JOIN Users u ON p.OwnerUserId = u.Id
+                  ORDER BY p.LastActivityDate DESC
+                  OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
+                new { TagPattern = tagPattern, Offset = offset, PageSize = pageSize },
+                commandTimeout: 5),
             (post, user) =>
             {
                 post.Owner = user;
                 return post;
             },
-            new { TagPattern = tagPattern, Offset = offset, PageSize = pageSize },
             splitOn: "Id");
     }
 
@@ -149,10 +145,12 @@ public class PostRepository : IPostRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         var tagPattern = $"%<{tagName}>%";
-        // Cap at 10000 to avoid full table scan on LIKE query
+        // Cap at 500 with no ORDER BY so TOP can short-circuit the scan
         return await connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM (SELECT TOP 10000 Id FROM Posts WHERE PostTypeId = 1 AND DeletionDate IS NULL AND Tags LIKE @TagPattern) AS t",
-            new { TagPattern = tagPattern });
+            new CommandDefinition(
+                "SELECT COUNT(*) FROM (SELECT TOP 500 Id FROM Posts WHERE PostTypeId = 1 AND DeletionDate IS NULL AND Tags LIKE @TagPattern) AS t",
+                new { TagPattern = tagPattern },
+                commandTimeout: 5));
     }
 
     public async Task<IEnumerable<Post>> GetRecentQuestionsAsync(int count)
@@ -210,31 +208,27 @@ public class PostRepository : IPostRepository
         var offset = (page - 1) * pageSize;
         var searchPattern = $"%{query}%";
 
-        // Use a CTE with TOP to limit the scan scope, then paginate
+        // Grab first 500 matching rows (no inner ORDER BY so TOP can short-circuit the scan)
+        // then sort and paginate only the small result set
         return await connection.QueryAsync<Post, User, Post>(
-            @"WITH SearchResults AS (
-                  SELECT TOP 10000 Id, PostTypeId, AcceptedAnswerId, CreationDate, Score, ViewCount,
-                         OwnerUserId, Title, Tags, AnswerCount, CommentCount, FavoriteCount,
-                         LastActivityDate, ClosedDate
-                  FROM Posts
-                  WHERE PostTypeId = 1 AND DeletionDate IS NULL
-                  AND (Title LIKE @SearchPattern OR Tags LIKE @SearchPattern)
-                  ORDER BY Score DESC, LastActivityDate DESC
-              )
-              SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
-                     p.OwnerUserId, p.Title, p.Tags, p.AnswerCount, p.CommentCount, p.FavoriteCount,
-                     p.LastActivityDate, p.ClosedDate,
-                     u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
-              FROM SearchResults p
-              LEFT JOIN Users u ON p.OwnerUserId = u.Id
-              ORDER BY p.Score DESC, p.LastActivityDate DESC
-              OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
+            new CommandDefinition(
+                @"SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
+                         p.OwnerUserId, p.Title, p.Tags, p.AnswerCount, p.CommentCount, p.FavoriteCount,
+                         p.LastActivityDate, p.ClosedDate,
+                         u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
+                  FROM (SELECT TOP 500 * FROM Posts
+                        WHERE PostTypeId = 1 AND DeletionDate IS NULL
+                        AND (Title LIKE @SearchPattern OR Tags LIKE @SearchPattern)) p
+                  LEFT JOIN Users u ON p.OwnerUserId = u.Id
+                  ORDER BY p.Score DESC, p.LastActivityDate DESC
+                  OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
+                new { SearchPattern = searchPattern, Offset = offset, PageSize = pageSize },
+                commandTimeout: 5),
             (post, user) =>
             {
                 post.Owner = user;
                 return post;
             },
-            new { SearchPattern = searchPattern, Offset = offset, PageSize = pageSize },
             splitOn: "Id");
     }
 
@@ -243,12 +237,14 @@ public class PostRepository : IPostRepository
         using var connection = _connectionFactory.CreateConnection();
         var searchPattern = $"%{query}%";
 
-        // Cap at 10000 to avoid full table scan; search Title and Tags only (Body LIKE is too slow)
+        // Cap at 500 with no ORDER BY so TOP can short-circuit the scan
         return await connection.ExecuteScalarAsync<int>(
-            @"SELECT COUNT(*) FROM (SELECT TOP 10000 Id FROM Posts
-              WHERE PostTypeId = 1 AND DeletionDate IS NULL
-              AND (Title LIKE @SearchPattern OR Tags LIKE @SearchPattern)) AS t",
-            new { SearchPattern = searchPattern });
+            new CommandDefinition(
+                @"SELECT COUNT(*) FROM (SELECT TOP 500 Id FROM Posts
+                  WHERE PostTypeId = 1 AND DeletionDate IS NULL
+                  AND (Title LIKE @SearchPattern OR Tags LIKE @SearchPattern)) AS t",
+                new { SearchPattern = searchPattern },
+                commandTimeout: 5));
     }
 
     public async Task<int> CreateQuestionAsync(Post question)
