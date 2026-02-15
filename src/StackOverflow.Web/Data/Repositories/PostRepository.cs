@@ -85,15 +85,23 @@ public class PostRepository : IPostRepository
         var offset = (page - 1) * pageSize;
         var tagPattern = $"%<{tagName}>%";
 
+        // Use a CTE with TOP to limit the scan scope, then paginate
         return await connection.QueryAsync<Post, User, Post>(
-            @"SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
+            @"WITH TaggedQuestions AS (
+                  SELECT TOP 10000 Id, PostTypeId, AcceptedAnswerId, CreationDate, Score, ViewCount,
+                         OwnerUserId, Title, Tags, AnswerCount, CommentCount, FavoriteCount,
+                         LastActivityDate, ClosedDate
+                  FROM Posts
+                  WHERE PostTypeId = 1 AND DeletionDate IS NULL
+                  AND Tags LIKE @TagPattern
+                  ORDER BY LastActivityDate DESC
+              )
+              SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
                      p.OwnerUserId, p.Title, p.Tags, p.AnswerCount, p.CommentCount, p.FavoriteCount,
                      p.LastActivityDate, p.ClosedDate,
                      u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
-              FROM Posts p
+              FROM TaggedQuestions p
               LEFT JOIN Users u ON p.OwnerUserId = u.Id
-              WHERE p.PostTypeId = 1 AND p.DeletionDate IS NULL
-              AND p.Tags LIKE @TagPattern
               ORDER BY p.LastActivityDate DESC
               OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
             (post, user) =>
@@ -202,15 +210,23 @@ public class PostRepository : IPostRepository
         var offset = (page - 1) * pageSize;
         var searchPattern = $"%{query}%";
 
+        // Use a CTE with TOP to limit the scan scope, then paginate
         return await connection.QueryAsync<Post, User, Post>(
-            @"SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
+            @"WITH SearchResults AS (
+                  SELECT TOP 10000 Id, PostTypeId, AcceptedAnswerId, CreationDate, Score, ViewCount,
+                         OwnerUserId, Title, Tags, AnswerCount, CommentCount, FavoriteCount,
+                         LastActivityDate, ClosedDate
+                  FROM Posts
+                  WHERE PostTypeId = 1 AND DeletionDate IS NULL
+                  AND (Title LIKE @SearchPattern OR Tags LIKE @SearchPattern)
+                  ORDER BY Score DESC, LastActivityDate DESC
+              )
+              SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
                      p.OwnerUserId, p.Title, p.Tags, p.AnswerCount, p.CommentCount, p.FavoriteCount,
                      p.LastActivityDate, p.ClosedDate,
                      u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
-              FROM Posts p
+              FROM SearchResults p
               LEFT JOIN Users u ON p.OwnerUserId = u.Id
-              WHERE p.PostTypeId = 1 AND p.DeletionDate IS NULL
-              AND (p.Title LIKE @SearchPattern OR p.Tags LIKE @SearchPattern)
               ORDER BY p.Score DESC, p.LastActivityDate DESC
               OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
             (post, user) =>

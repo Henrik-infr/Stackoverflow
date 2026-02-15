@@ -36,7 +36,8 @@ public class TagRepository : ITagRepository
         var whereClause = string.IsNullOrEmpty(filter)
             ? ""
             : "WHERE TagName LIKE @Filter";
-        var filterParam = string.IsNullOrEmpty(filter) ? null : $"%{filter}%";
+        // Use prefix match for faster lookups
+        var filterParam = string.IsNullOrEmpty(filter) ? null : $"{filter}%";
 
         return await connection.QueryAsync<Tag>(
             $@"SELECT * FROM Tags
@@ -57,7 +58,7 @@ public class TagRepository : ITagRepository
 
         return await connection.ExecuteScalarAsync<int>(
             "SELECT COUNT(*) FROM Tags WHERE TagName LIKE @Filter",
-            new { Filter = $"%{filter}%" });
+            new { Filter = $"{filter}%" });
     }
 
     public async Task<IEnumerable<Tag>> GetPopularTagsAsync(int count)
