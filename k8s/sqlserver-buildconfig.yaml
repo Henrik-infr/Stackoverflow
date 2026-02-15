@@ -1,0 +1,27 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: sqlserver-fts
+  namespace: stackoverflow
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: sqlserver-fts:latest
+  source:
+    type: Git
+    git:
+      uri: https://github.com/Henrik-infr/Stackoverflow.git
+      ref: main
+    contextDir: sqlserver
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  triggers: []
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: sqlserver-fts
+  namespace: stackoverflow
