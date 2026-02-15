@@ -83,7 +83,8 @@ public class PostRepository : IPostRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         var offset = (page - 1) * pageSize;
-        var tagPattern = $"%<{tagName}>%";
+        // Full-text search for tag name in the Tags column
+        var ftsQuery = $"\"{tagName.Replace("\"", "")}\"";
 
         return await connection.QueryAsync<Post, User, Post>(
             new CommandDefinition(
@@ -94,10 +95,10 @@ public class PostRepository : IPostRepository
                   FROM Posts p
                   LEFT JOIN Users u ON p.OwnerUserId = u.Id
                   WHERE p.PostTypeId = 1 AND p.DeletionDate IS NULL
-                  AND p.Tags LIKE @TagPattern
-                  ORDER BY p.Id DESC
+                  AND CONTAINS(p.Tags, @FtsQuery)
+                  ORDER BY p.LastActivityDate DESC
                   OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
-                new { TagPattern = tagPattern, Offset = offset, PageSize = pageSize },
+                new { FtsQuery = ftsQuery, Offset = offset, PageSize = pageSize },
                 commandTimeout: 10),
             (post, user) =>
             {
@@ -142,12 +143,11 @@ public class PostRepository : IPostRepository
     public async Task<int> GetQuestionCountByTagAsync(string tagName)
     {
         using var connection = _connectionFactory.CreateConnection();
-        var tagPattern = $"%<{tagName}>%";
-        // Cap at 500 with no ORDER BY so TOP can short-circuit the scan
+        var ftsQuery = $"\"{tagName.Replace("\"", "")}\"";
         return await connection.ExecuteScalarAsync<int>(
             new CommandDefinition(
-                "SELECT COUNT(*) FROM (SELECT TOP 500 Id FROM Posts WHERE PostTypeId = 1 AND DeletionDate IS NULL AND Tags LIKE @TagPattern) AS t",
-                new { TagPattern = tagPattern },
+                "SELECT COUNT(*) FROM (SELECT TOP 10000 Id FROM Posts WHERE PostTypeId = 1 AND DeletionDate IS NULL AND CONTAINS(Tags, @FtsQuery)) AS t",
+                new { FtsQuery = ftsQuery },
                 commandTimeout: 10));
     }
 
@@ -204,12 +204,13 @@ public class PostRepository : IPostRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         var offset = (page - 1) * pageSize;
-        // Substring match on Title and Tags
-        var searchPattern = $"%{query}%";
 
-        // ORDER BY Id DESC scans the clustered index backwards, so SQL Server
-        // can stop as soon as it fills one page (no need to find ALL matches first).
-        // This returns recent matching posts which is also better UX.
+        // Build full-text search term: split words and AND them together
+        // e.g. "react hooks" -> '"react*" AND "hooks*"'
+        var searchTerms = query.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => $"\"{t.Replace("\"", "")}*\"");
+        var ftsQuery = string.Join(" AND ", searchTerms);
+
         return await connection.QueryAsync<Post, User, Post>(
             new CommandDefinition(
                 @"SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
@@ -219,10 +220,10 @@ public class PostRepository : IPostRepository
                   FROM Posts p
                   LEFT JOIN Users u ON p.OwnerUserId = u.Id
                   WHERE p.PostTypeId = 1 AND p.DeletionDate IS NULL
-                  AND (p.Title LIKE @SearchPattern OR p.Tags LIKE @SearchPattern)
-                  ORDER BY p.Id DESC
+                  AND CONTAINS((p.Title, p.Tags), @FtsQuery)
+                  ORDER BY p.Score DESC
                   OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
-                new { SearchPattern = searchPattern, Offset = offset, PageSize = pageSize },
+                new { FtsQuery = ftsQuery, Offset = offset, PageSize = pageSize },
                 commandTimeout: 10),
             (post, user) =>
             {
@@ -235,15 +236,17 @@ public class PostRepository : IPostRepository
     public async Task<int> GetSearchCountAsync(string query)
     {
         using var connection = _connectionFactory.CreateConnection();
-        var searchPattern = $"%{query}%";
 
-        // Return approximate count — cap at 500 to avoid long scan
+        var searchTerms = query.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => $"\"{t.Replace("\"", "")}*\"");
+        var ftsQuery = string.Join(" AND ", searchTerms);
+
         return await connection.ExecuteScalarAsync<int>(
             new CommandDefinition(
-                @"SELECT COUNT(*) FROM (SELECT TOP 500 Id FROM Posts
+                @"SELECT COUNT(*) FROM (SELECT TOP 10000 Id FROM Posts
                   WHERE PostTypeId = 1 AND DeletionDate IS NULL
-                  AND (Title LIKE @SearchPattern OR Tags LIKE @SearchPattern)) AS t",
-                new { SearchPattern = searchPattern },
+                  AND CONTAINS((Title, Tags), @FtsQuery)) AS t",
+                new { FtsQuery = ftsQuery },
                 commandTimeout: 10));
     }
 
