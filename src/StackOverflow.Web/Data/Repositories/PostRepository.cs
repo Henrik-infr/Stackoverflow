@@ -304,6 +304,38 @@ public class PostRepository : IPostRepository
             });
     }
 
+    public async Task DeleteAsync(int id)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        var now = DateTime.UtcNow;
+
+        // Soft-delete the post
+        await connection.ExecuteAsync(
+            "UPDATE Posts SET DeletionDate = @Now WHERE Id = @Id",
+            new { Now = now, Id = id });
+
+        // If it's a question, also soft-delete its answers and decrement nothing (question is gone)
+        // If it's an answer, decrement the parent's answer count
+        var post = await connection.QueryFirstOrDefaultAsync<Post>(
+            "SELECT PostTypeId, ParentId FROM Posts WHERE Id = @Id",
+            new { Id = id });
+
+        if (post?.PostTypeId == 1)
+        {
+            // Soft-delete all child answers
+            await connection.ExecuteAsync(
+                "UPDATE Posts SET DeletionDate = @Now WHERE ParentId = @Id AND PostTypeId = 2 AND DeletionDate IS NULL",
+                new { Now = now, Id = id });
+        }
+        else if (post?.PostTypeId == 2 && post.ParentId.HasValue)
+        {
+            // Decrement parent question's answer count
+            await connection.ExecuteAsync(
+                "UPDATE Posts SET AnswerCount = CASE WHEN AnswerCount > 0 THEN AnswerCount - 1 ELSE 0 END WHERE Id = @ParentId",
+                new { post.ParentId });
+        }
+    }
+
     public async Task<IEnumerable<PostLink>> GetRelatedQuestionsAsync(int postId)
     {
         using var connection = _connectionFactory.CreateConnection();

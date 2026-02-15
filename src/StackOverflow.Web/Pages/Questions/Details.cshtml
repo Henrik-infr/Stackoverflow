@@ -59,7 +59,11 @@ else
                     <div class="post-footer">
                         <div class="post-menu">
                             <a href="#">Share</a>
-                            <a href="#">Edit</a>
+                            <a href="/Questions/Edit/@question.Id">Edit</a>
+                            <form method="post" asp-page-handler="DeleteQuestion" style="display:inline">
+                                <input type="hidden" name="id" value="@question.Id" />
+                                <button type="submit" class="post-menu-link" onclick="return confirm('Are you sure you want to delete this question? This will also delete all answers.')">Delete</button>
+                            </form>
                             <a href="#">Follow</a>
                         </div>
                         <div class="post-signature owner">
@@ -144,7 +148,12 @@ else
                                 <div class="post-footer">
                                     <div class="post-menu">
                                         <a href="#">Share</a>
-                                        <a href="#">Edit</a>
+                                        <a href="/Questions/EditAnswer/@answer.Id">Edit</a>
+                                        <form method="post" asp-page-handler="DeleteAnswer" style="display:inline">
+                                            <input type="hidden" name="questionId" value="@question.Id" />
+                                            <input type="hidden" name="answerId" value="@answer.Id" />
+                                            <button type="submit" class="post-menu-link" onclick="return confirm('Are you sure you want to delete this answer?')">Delete</button>
+                                        </form>
                                         <a href="#">Follow</a>
                                     </div>
                                     <div class="post-signature">

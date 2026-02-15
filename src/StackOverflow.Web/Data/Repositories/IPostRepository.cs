@@ -19,6 +19,7 @@ public interface IPostRepository
     Task<int> CreateQuestionAsync(Post question);
     Task<int> CreateAnswerAsync(Post answer);
     Task UpdateAsync(Post post);
+    Task DeleteAsync(int id);
     Task<IEnumerable<PostLink>> GetRelatedQuestionsAsync(int postId);
     Task<IEnumerable<PostLink>> GetLinkedQuestionsAsync(int postId);
     Task<IEnumerable<PostHistory>> GetPostHistoryAsync(int postId);

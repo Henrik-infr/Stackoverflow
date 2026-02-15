@@ -6,6 +6,7 @@ using StackOverflow.Web.Models.ViewModels;
 
 namespace StackOverflow.Web.Pages.Questions;
 
+[IgnoreAntiforgeryToken]
 public class DetailsModel : PageModel
 {
     private readonly IPostRepository _postRepository;
@@ -94,6 +95,34 @@ public class DetailsModel : PageModel
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating answer for question {QuestionId}", questionId);
+            return RedirectToPage(new { id = questionId });
+        }
+    }
+
+    public async Task<IActionResult> OnPostDeleteQuestionAsync(int id)
+    {
+        try
+        {
+            await _postRepository.DeleteAsync(id);
+            return Redirect("/Questions");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting question {Id}", id);
+            return RedirectToPage(new { id });
+        }
+    }
+
+    public async Task<IActionResult> OnPostDeleteAnswerAsync(int questionId, int answerId)
+    {
+        try
+        {
+            await _postRepository.DeleteAsync(answerId);
+            return Redirect($"/Questions/Details/{questionId}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting answer {AnswerId}", answerId);
             return RedirectToPage(new { id = questionId });
         }
     }

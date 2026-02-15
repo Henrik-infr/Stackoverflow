@@ -674,6 +674,20 @@ pre code {
     color: var(--gray-dark);
 }
 
+.post-menu-link {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--gray);
+    font-size: 0.9rem;
+    font-family: inherit;
+}
+
+.post-menu-link:hover {
+    color: var(--red);
+}
+
 .post-signature {
     padding: 0.5rem 0.75rem;
     border-radius: 3px;
