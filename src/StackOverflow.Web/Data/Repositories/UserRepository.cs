@@ -60,7 +60,8 @@ public class UserRepository : IUserRepository
         var whereClause = string.IsNullOrEmpty(filter)
             ? ""
             : "WHERE DisplayName LIKE @Filter";
-        var filterParam = string.IsNullOrEmpty(filter) ? null : $"%{filter}%";
+        // Use prefix match (index-friendly) instead of substring match
+        var filterParam = string.IsNullOrEmpty(filter) ? null : $"{filter}%";
 
         return await connection.QueryAsync<User>(
             $@"SELECT Id, Reputation, CreationDate, DisplayName, LastAccessDate, Location,
@@ -84,9 +85,10 @@ public class UserRepository : IUserRepository
                   WHERE object_id = OBJECT_ID('Users') AND index_id IN (0,1)");
         }
 
+        // Use prefix match (index-friendly) and cap at 10000
         return await connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM Users WHERE DisplayName LIKE @Filter",
-            new { Filter = $"%{filter}%" });
+            "SELECT COUNT(*) FROM (SELECT TOP 10000 Id FROM Users WHERE DisplayName LIKE @Filter) AS t",
+            new { Filter = $"{filter}%" });
     }
 
     public async Task<IEnumerable<User>> GetTopUsersByReputationAsync(int count)
