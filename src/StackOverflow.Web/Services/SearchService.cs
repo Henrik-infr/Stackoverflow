@@ -13,9 +13,9 @@ public class SearchService : ISearchService
         _postRepository = postRepository;
     }
 
-    public async Task<SearchResultsViewModel> SearchAsync(string query, int page, int pageSize, SearchFilters? filters = null)
+    public async Task<SearchResultsViewModel> SearchAsync(string query, int page, int pageSize, string? sortBy = null, SearchFilters? filters = null)
     {
-        var results = await _postRepository.SearchAsync(query, page, pageSize);
+        var results = await _postRepository.SearchAsync(query, page, pageSize, sortBy);
         var totalCount = await _postRepository.GetSearchCountAsync(query);
 
         // Apply additional filters if provided

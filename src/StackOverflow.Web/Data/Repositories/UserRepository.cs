@@ -110,4 +110,27 @@ public class UserRepository : IUserRepository
             "UPDATE Users SET Reputation = Reputation + @Change WHERE Id = @UserId",
             new { UserId = userId, Change = change });
     }
+
+    public async Task<User?> GetByDisplayNameAsync(string displayName)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        return await connection.QueryFirstOrDefaultAsync<User>(
+            "SELECT TOP 1 * FROM Users WHERE DisplayName = @DisplayName",
+            new { DisplayName = displayName });
+    }
+
+    public async Task<int> CreateUserAsync(User user)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        return await connection.ExecuteScalarAsync<int>(
+            @"INSERT INTO Users (Reputation, CreationDate, DisplayName, LastAccessDate, Location, Views, UpVotes, DownVotes)
+              VALUES (1, @CreationDate, @DisplayName, @CreationDate, @Location, 0, 0, 0);
+              SELECT CAST(SCOPE_IDENTITY() AS INT)",
+            new
+            {
+                CreationDate = DateTime.UtcNow,
+                user.DisplayName,
+                user.Location
+            });
+    }
 }

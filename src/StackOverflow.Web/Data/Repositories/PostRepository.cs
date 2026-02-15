@@ -200,7 +200,7 @@ public class PostRepository : IPostRepository
             new { UserId = userId, Count = count });
     }
 
-    public async Task<IEnumerable<Post>> SearchAsync(string query, int page, int pageSize)
+    public async Task<IEnumerable<Post>> SearchAsync(string query, int page, int pageSize, string? sortBy = null)
     {
         using var connection = _connectionFactory.CreateConnection();
         var offset = (page - 1) * pageSize;
@@ -211,9 +211,16 @@ public class PostRepository : IPostRepository
             .Select(t => $"\"{t.Replace("\"", "")}*\"");
         var ftsQuery = string.Join(" AND ", searchTerms);
 
+        var orderBy = sortBy?.ToLower() switch
+        {
+            "newest" => "p.CreationDate DESC",
+            "votes" => "p.Score DESC",
+            _ => "p.Score DESC"
+        };
+
         return await connection.QueryAsync<Post, User, Post>(
             new CommandDefinition(
-                @"SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
+                $@"SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
                          p.OwnerUserId, p.Title, p.Tags, p.AnswerCount, p.CommentCount, p.FavoriteCount,
                          p.LastActivityDate, p.ClosedDate,
                          u.Id, u.DisplayName, u.Reputation, u.ProfileImageUrl, u.EmailHash
@@ -221,7 +228,7 @@ public class PostRepository : IPostRepository
                   LEFT JOIN Users u ON p.OwnerUserId = u.Id
                   WHERE p.PostTypeId = 1 AND p.DeletionDate IS NULL
                   AND CONTAINS((p.Title, p.Tags), @FtsQuery)
-                  ORDER BY p.Score DESC
+                  ORDER BY {orderBy}
                   OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
                 new { FtsQuery = ftsQuery, Offset = offset, PageSize = pageSize },
                 commandTimeout: 10),

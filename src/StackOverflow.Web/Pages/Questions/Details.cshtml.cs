@@ -81,12 +81,17 @@ public class DetailsModel : PageModel
 
         try
         {
+            int? ownerUserId = null;
+            if (Request.Cookies.TryGetValue("UserId", out var userIdStr) && int.TryParse(userIdStr, out var uid))
+            {
+                ownerUserId = uid;
+            }
+
             var answer = new Post
             {
                 ParentId = id,
                 Body = body,
-                // In a real app, this would come from authentication
-                OwnerUserId = null
+                OwnerUserId = ownerUserId
             };
 
             var answerId = await _postRepository.CreateAnswerAsync(answer);

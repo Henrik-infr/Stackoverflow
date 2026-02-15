@@ -1,0 +1,28 @@
+@page
+@model StackOverflow.Web.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Log In";
+}
+
+<div class="auth-page">
+    <div class="auth-form-container">
+        <h1>Log In</h1>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger">@Model.ErrorMessage</div>
+        }
+
+        <form method="post">
+            <div class="form-group">
+                <label for="displayName">Display Name</label>
+                <input type="text" id="displayName" name="displayName" class="form-control" required autofocus placeholder="Enter your display name" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Log In</button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Don't have an account? <a href="/Account/Signup">Sign up</a></p>
+        </div>
+    </div>
+</div>

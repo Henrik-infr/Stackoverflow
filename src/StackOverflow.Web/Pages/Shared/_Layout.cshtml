@@ -22,6 +22,18 @@
                 <input type="search" name="q" placeholder="Search..." class="search-input" value="@Context.Request.Query["q"]" />
                 <button type="submit" class="search-btn">🔍</button>
             </form>
+            <div class="auth-links">
+                @if (Context.Request.Cookies.ContainsKey("UserDisplayName"))
+                {
+                    <span class="user-greeting">Welcome, @Context.Request.Cookies["UserDisplayName"]</span>
+                    <a href="/Account/Logout" class="btn btn-link">Log out</a>
+                }
+                else
+                {
+                    <a href="/Account/Login" class="btn btn-link">Log in</a>
+                    <a href="/Account/Signup" class="btn btn-primary btn-sm">Sign up</a>
+                }
+            </div>
         </div>
     </header>
 

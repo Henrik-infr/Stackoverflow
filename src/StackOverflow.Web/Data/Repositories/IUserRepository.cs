@@ -10,4 +10,6 @@ public interface IUserRepository
     Task<int> GetUserCountAsync(string? filter = null);
     Task<IEnumerable<User>> GetTopUsersByReputationAsync(int count);
     Task UpdateReputationAsync(int userId, int change);
+    Task<User?> GetByDisplayNameAsync(string displayName);
+    Task<int> CreateUserAsync(User user);
 }

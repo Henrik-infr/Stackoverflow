@@ -47,13 +47,18 @@ public class AskModel : PageModel
                 formattedTags = string.Join("", tagList.Select(t => $"<{t}>"));
             }
 
+            int? ownerUserId = null;
+            if (Request.Cookies.TryGetValue("UserId", out var userIdStr) && int.TryParse(userIdStr, out var uid))
+            {
+                ownerUserId = uid;
+            }
+
             var question = new Post
             {
                 Title = Input?.Title ?? string.Empty,
                 Body = Input?.Body ?? string.Empty,
                 Tags = formattedTags,
-                // In a real app, this would come from authentication
-                OwnerUserId = null
+                OwnerUserId = ownerUserId
             };
 
             var questionId = await _postRepository.CreateQuestionAsync(question);

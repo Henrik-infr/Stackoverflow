@@ -14,7 +14,7 @@ public interface IPostRepository
     Task<IEnumerable<Post>> GetRecentQuestionsAsync(int count);
     Task<IEnumerable<Post>> GetUserQuestionsAsync(int userId, int count);
     Task<IEnumerable<Post>> GetUserAnswersAsync(int userId, int count);
-    Task<IEnumerable<Post>> SearchAsync(string query, int page, int pageSize);
+    Task<IEnumerable<Post>> SearchAsync(string query, int page, int pageSize, string? sortBy = null);
     Task<int> GetSearchCountAsync(string query);
     Task<int> CreateQuestionAsync(Post question);
     Task<int> CreateAnswerAsync(Post answer);

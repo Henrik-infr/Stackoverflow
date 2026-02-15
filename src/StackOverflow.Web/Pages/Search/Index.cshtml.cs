@@ -23,7 +23,7 @@ public class IndexModel : PageModel
         {
             if (!string.IsNullOrWhiteSpace(q))
             {
-                ViewModel = await _searchService.SearchAsync(q, page, 15);
+                ViewModel = await _searchService.SearchAsync(q, page, 15, sort);
                 ViewModel.SortBy = sort;
             }
         }

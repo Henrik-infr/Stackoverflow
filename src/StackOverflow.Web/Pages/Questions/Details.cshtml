@@ -128,7 +128,7 @@ else
                 @foreach (var answer in Model.ViewModel.Answers)
                 {
                     var isAccepted = question.AcceptedAnswerId == answer.Id;
-                    <div class="answer @(isAccepted ? "accepted" : "")" id="answer-@answer.Id">
+                    <div class="answer @(isAccepted ? "accepted" : "")" id="answer-@answer.Id" data-score="@answer.Score" data-date="@answer.CreationDate.ToString("o")" data-accepted="@(isAccepted ? "1" : "0")">
                         <div class="post-layout">
                             <div class="vote-cell">
                                 <button class="vote-btn upvote" data-post-id="@answer.Id" data-vote-type="up">▲</button>
@@ -254,4 +254,33 @@ else
             }
         </aside>
     </div>
+}
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var select = document.querySelector('.sort-select');
+        if (!select) return;
+        select.addEventListener('change', function () {
+            var container = document.querySelector('.answers-section');
+            var answers = Array.from(container.querySelectorAll('.answer'));
+            answers.sort(function (a, b) {
+                // Accepted answers always come first
+                var aAccepted = a.dataset.accepted === '1';
+                var bAccepted = b.dataset.accepted === '1';
+                if (aAccepted !== bAccepted) return aAccepted ? -1 : 1;
+
+                var sortBy = select.value;
+                if (sortBy === 'votes') {
+                    return parseInt(b.dataset.score) - parseInt(a.dataset.score);
+                } else if (sortBy === 'date' || sortBy === 'created') {
+                    return new Date(b.dataset.date) - new Date(a.dataset.date);
+                }
+                return 0;
+            });
+            var header = container.querySelector('.answers-header');
+            answers.forEach(function (el) { container.insertBefore(el, container.querySelector('.your-answer')); });
+        });
+    });
+</script>
 }

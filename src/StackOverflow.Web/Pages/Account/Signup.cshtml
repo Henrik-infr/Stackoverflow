@@ -1,0 +1,32 @@
+@page
+@model StackOverflow.Web.Pages.Account.SignupModel
+@{
+    ViewData["Title"] = "Sign Up";
+}
+
+<div class="auth-page">
+    <div class="auth-form-container">
+        <h1>Sign Up</h1>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger">@Model.ErrorMessage</div>
+        }
+
+        <form method="post">
+            <div class="form-group">
+                <label for="displayName">Display Name</label>
+                <input type="text" id="displayName" name="displayName" class="form-control" required autofocus placeholder="Choose a display name" />
+            </div>
+            <div class="form-group">
+                <label for="location">Location <span class="optional">(optional)</span></label>
+                <input type="text" id="location" name="location" class="form-control" placeholder="e.g. New York, USA" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Sign Up</button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Already have an account? <a href="/Account/Login">Log in</a></p>
+        </div>
+    </div>
+</div>
