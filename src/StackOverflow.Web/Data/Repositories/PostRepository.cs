@@ -95,10 +95,10 @@ public class PostRepository : IPostRepository
                   LEFT JOIN Users u ON p.OwnerUserId = u.Id
                   WHERE p.PostTypeId = 1 AND p.DeletionDate IS NULL
                   AND p.Tags LIKE @TagPattern
-                  ORDER BY p.LastActivityDate DESC
+                  ORDER BY p.Id DESC
                   OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
                 new { TagPattern = tagPattern, Offset = offset, PageSize = pageSize },
-                commandTimeout: 5),
+                commandTimeout: 10),
             (post, user) =>
             {
                 post.Owner = user;
@@ -148,7 +148,7 @@ public class PostRepository : IPostRepository
             new CommandDefinition(
                 "SELECT COUNT(*) FROM (SELECT TOP 500 Id FROM Posts WHERE PostTypeId = 1 AND DeletionDate IS NULL AND Tags LIKE @TagPattern) AS t",
                 new { TagPattern = tagPattern },
-                commandTimeout: 5));
+                commandTimeout: 10));
     }
 
     public async Task<IEnumerable<Post>> GetRecentQuestionsAsync(int count)
@@ -204,11 +204,12 @@ public class PostRepository : IPostRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         var offset = (page - 1) * pageSize;
-        // Title: prefix match (uses IX_Posts_Title index)
-        // Tags: exact tag match using <tagname> format
-        var titlePattern = $"{query}%";
-        var tagPattern = $"%<{query}>%";
+        // Substring match on Title and Tags
+        var searchPattern = $"%{query}%";
 
+        // ORDER BY Id DESC scans the clustered index backwards, so SQL Server
+        // can stop as soon as it fills one page (no need to find ALL matches first).
+        // This returns recent matching posts which is also better UX.
         return await connection.QueryAsync<Post, User, Post>(
             new CommandDefinition(
                 @"SELECT p.Id, p.PostTypeId, p.AcceptedAnswerId, p.CreationDate, p.Score, p.ViewCount,
@@ -218,11 +219,11 @@ public class PostRepository : IPostRepository
                   FROM Posts p
                   LEFT JOIN Users u ON p.OwnerUserId = u.Id
                   WHERE p.PostTypeId = 1 AND p.DeletionDate IS NULL
-                  AND (p.Title LIKE @TitlePattern OR p.Tags LIKE @TagPattern)
-                  ORDER BY p.Score DESC, p.LastActivityDate DESC
+                  AND (p.Title LIKE @SearchPattern OR p.Tags LIKE @SearchPattern)
+                  ORDER BY p.Id DESC
                   OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
-                new { TitlePattern = titlePattern, TagPattern = tagPattern, Offset = offset, PageSize = pageSize },
-                commandTimeout: 5),
+                new { SearchPattern = searchPattern, Offset = offset, PageSize = pageSize },
+                commandTimeout: 10),
             (post, user) =>
             {
                 post.Owner = user;
@@ -234,17 +235,16 @@ public class PostRepository : IPostRepository
     public async Task<int> GetSearchCountAsync(string query)
     {
         using var connection = _connectionFactory.CreateConnection();
-        var titlePattern = $"{query}%";
-        var tagPattern = $"%<{query}>%";
+        var searchPattern = $"%{query}%";
 
-        // Cap at 10000 — prefix match on Title uses the index so this is fast
+        // Return approximate count — cap at 500 to avoid long scan
         return await connection.ExecuteScalarAsync<int>(
             new CommandDefinition(
-                @"SELECT COUNT(*) FROM (SELECT TOP 10000 Id FROM Posts
+                @"SELECT COUNT(*) FROM (SELECT TOP 500 Id FROM Posts
                   WHERE PostTypeId = 1 AND DeletionDate IS NULL
-                  AND (Title LIKE @TitlePattern OR Tags LIKE @TagPattern)) AS t",
-                new { TitlePattern = titlePattern, TagPattern = tagPattern },
-                commandTimeout: 5));
+                  AND (Title LIKE @SearchPattern OR Tags LIKE @SearchPattern)) AS t",
+                new { SearchPattern = searchPattern },
+                commandTimeout: 10));
     }
 
     public async Task<int> CreateQuestionAsync(Post question)
