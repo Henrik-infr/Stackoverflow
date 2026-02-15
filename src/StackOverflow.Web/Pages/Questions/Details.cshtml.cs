@@ -72,30 +72,30 @@ public class DetailsModel : PageModel
         }
     }
 
-    public async Task<IActionResult> OnPostAnswerAsync(int questionId, string body)
+    public async Task<IActionResult> OnPostAnswerAsync(int id, string body)
     {
         if (string.IsNullOrWhiteSpace(body))
         {
-            return RedirectToPage(new { id = questionId });
+            return RedirectToPage(new { id });
         }
 
         try
         {
             var answer = new Post
             {
-                ParentId = questionId,
+                ParentId = id,
                 Body = body,
                 // In a real app, this would come from authentication
                 OwnerUserId = null
             };
 
             var answerId = await _postRepository.CreateAnswerAsync(answer);
-            return Redirect($"/Questions/Details/{questionId}#answer-{answerId}");
+            return Redirect($"/Questions/Details/{id}#answer-{answerId}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating answer for question {QuestionId}", questionId);
-            return RedirectToPage(new { id = questionId });
+            _logger.LogError(ex, "Error creating answer for question {QuestionId}", id);
+            return RedirectToPage(new { id });
         }
     }
 
