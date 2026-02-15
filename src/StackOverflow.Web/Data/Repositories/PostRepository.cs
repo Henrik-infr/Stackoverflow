@@ -260,8 +260,8 @@ public class PostRepository : IPostRepository
         using var connection = _connectionFactory.CreateConnection();
 
         var id = await connection.ExecuteScalarAsync<int>(
-            @"INSERT INTO Posts (PostTypeId, ParentId, CreationDate, LastActivityDate, Score, Body, OwnerUserId, CommentCount)
-              VALUES (2, @ParentId, @CreationDate, @CreationDate, 0, @Body, @OwnerUserId, 0);
+            @"INSERT INTO Posts (PostTypeId, ParentId, CreationDate, LastActivityDate, Score, ViewCount, Body, OwnerUserId, CommentCount)
+              VALUES (2, @ParentId, @CreationDate, @CreationDate, 0, 0, @Body, @OwnerUserId, 0);
               SELECT CAST(SCOPE_IDENTITY() AS INT)",
             new
             {
