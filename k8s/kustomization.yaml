@@ -9,7 +9,7 @@ resources:
   # - secret.yaml
   # - sqlserver-secret.yaml
   - sqlserver-scc.yaml
-  - sqlserver-buildconfig.yaml
+  # sqlserver-buildconfig.yaml managed outside kustomize (commonLabels breaks ImageStream)
   - sqlserver-statefulset.yaml
   - sqlserver-service.yaml
   - sqlserver-attach-job.yaml

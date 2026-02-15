@@ -128,8 +128,25 @@ spec:
               cpu: "2"
       containers:
         - name: sqlserver
-          image: image-registry.openshift-image-registry.svc:5000/stackoverflow/sqlserver-fts:latest
-          imagePullPolicy: Always
+          image: mcr.microsoft.com/mssql/server:2022-latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # Install Full-Text Search if not already installed
+              if ! dpkg -l | grep -q mssql-server-fts; then
+                echo "Installing Full-Text Search..."
+                echo "deb [arch=amd64 trusted=yes] https://packages.microsoft.com/ubuntu/22.04/mssql-server-2022 jammy main" > /etc/apt/sources.list.d/mssql-server-2022.list
+                apt-get update -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/mssql-server-2022.list -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0" 2>/dev/null
+                apt-get install -y --no-install-recommends mssql-server-fts 2>/dev/null
+                echo "Full-Text Search installed."
+              else
+                echo "Full-Text Search already installed."
+              fi
+              # Start SQL Server
+              exec /opt/mssql/bin/sqlservr
+          securityContext:
+            runAsUser: 0
           ports:
             - containerPort: 1433
               name: sql
